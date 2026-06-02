@@ -2,8 +2,10 @@ package picosynth
 
 import (
 	"machine"
+	"math/bits"
 	"time"
 
+	"gbenson.net/go/picosynth/internal/dbuf"
 	"github.com/tinygo-org/pio/rp2-pio"
 	"github.com/tinygo-org/pio/rp2-pio/piolib"
 )
@@ -37,28 +39,50 @@ func (ps *Engine) Run() error {
 	}
 
 	// Calculate how many frames we can buffer without exceeding
-	// MaxLatency.
+	// MaxLatency, round down to a power of two, then allocate a
+	// buffer *twice* that size for double buffering.
 	bufferFrames := int(SampleRate * MaxLatency / time.Second)
-	buffer := make([]uint16, bufferFrames)
+	bufferFrames = 1 << (bits.Len(uint(bufferFrames)) - 1)
+	buffers := make([]uint16, bufferFrames*2)
 
-	// sine wave data
-	var sine []int16 = []int16{
-		6392, 12539, 18204, 23169, 27244, 30272, 32137, 32767, 32137,
-		30272, 27244, 23169, 18204, 12539, 6392, 0, -6393, -12540,
-		-18205, -23170, -27245, -30273, -32138, -32767, -32138, -30273, -27245,
-		-23170, -18205, -12540, -6393, -1,
-	}
-	for i := range buffer {
-		buffer[i] = uint16(sine[i%len(sine)])
+	// player plays A then waits for B
+	// filler fills B then waits for A
+	fillMe := make(chan []uint16, 2)
+	playMe := make(chan []uint16)
+	errors := make(chan error, 2)
+
+	filler := dbuf.Worker{
+		Name: "filler",
+		InC:  fillMe,
+		OutC: playMe,
+		ErrC: errors,
+		Func: ps.Fill,
 	}
 
-	for {
-		for i := 0; i < 50; i++ {
-			if _, err := i2s.WriteMono(buffer); err != nil {
-				return err
-			}
-		}
-
-		time.Sleep(time.Millisecond * 500)
+	player := dbuf.Worker{
+		Name: "player",
+		InC:  playMe,
+		OutC: fillMe,
+		ErrC: errors,
+		Func: func(buf []uint16) error {
+			_, err := i2s.WriteMono(buf)
+			return err
+		},
 	}
+
+	fillMe <- buffers[:bufferFrames]
+	fillMe <- buffers[bufferFrames:]
+
+	filler.Start()
+	player.Start()
+
+	return <-errors
+}
+
+// Fill generates samples into the supplied buffer.
+func (ps *Engine) Fill(buf []uint16) error {
+	for i := range buf {
+		buf[i] = uint16(i << 8)
+	}
+	return nil
 }
