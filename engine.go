@@ -18,6 +18,8 @@ const (
 )
 
 type Engine struct {
+	osc1 PhaseAccumulator
+
 	volume int
 }
 
@@ -84,12 +86,11 @@ func (ps *Engine) Fill(buf []uint16) error {
 	}
 
 	for i := range buf {
-		sample := uint32(i) & 255 // sample in [0..0xff]
-		sample |= (sample << 8)   // sample in [0..0xffff]
-		sample |= (sample << 16)  // sample in [0..0xffffffff]
+		ps.osc1.Frequency = 220 * Hz
+		ps.osc1.Step()
 
 		// Convert uint32 to int32
-		output := int32(sample - 0x80000000)
+		output := int32(ps.osc1.Phase - 0x80000000)
 
 		// Convert int32 to uint16 and apply ps.volume
 		buf[i] = uint16(int16(output>>finalShift)) + 0x8000
