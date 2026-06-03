@@ -1,21 +1,16 @@
 package picosynth
 
 import (
-	"machine"
 	"math/bits"
 	"time"
 
+	"gbenson.net/go/picosynth/internal/audio"
 	"gbenson.net/go/picosynth/internal/dbuf"
-	"github.com/tinygo-org/pio/rp2-pio"
-	"github.com/tinygo-org/pio/rp2-pio/piolib"
 )
 
 const (
 	SampleRate = 48000
 	MaxLatency = 10 * time.Millisecond
-
-	i2sDataPin  = machine.GPIO9  // physical pin 12
-	i2sClockPin = machine.GPIO10 // physical pin 14
 )
 
 type Engine struct {
@@ -23,20 +18,11 @@ type Engine struct {
 
 // Run is the main entry point of the firmware.
 func (ps *Engine) Run() error {
-	sm, err := pio.PIO0.ClaimStateMachine()
+	out, err := audio.Open(SampleRate)
 	if err != nil {
 		return err
 	}
-	defer sm.Unclaim()
-
-	i2s, err := piolib.NewI2S(sm, i2sDataPin, i2sClockPin)
-	if err != nil {
-		return err
-	}
-
-	if err := i2s.SetSampleFrequency(SampleRate); err != nil {
-		return err
-	}
+	defer out.Close()
 
 	// Calculate how many frames we can buffer without exceeding
 	// MaxLatency, round down to a power of two, then allocate a
@@ -64,10 +50,7 @@ func (ps *Engine) Run() error {
 		InC:  playMe,
 		OutC: fillMe,
 		ErrC: errors,
-		Func: func(buf []uint16) error {
-			_, err := i2s.WriteMono(buf)
-			return err
-		},
+		Func: out.WriteMono,
 	}
 
 	fillMe <- buffers[:bufferFrames]

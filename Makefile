@@ -6,6 +6,7 @@ check: test
 
 lint:
 	gofmt -w .
+	go vet ./...
 
 test: lint
 
