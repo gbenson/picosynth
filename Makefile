@@ -1,6 +1,6 @@
 all: build
 
-PHONY: build check lint run test
+PHONY: build check lint run run-local test
 
 check: test
 
@@ -15,3 +15,6 @@ build: check
 
 run: check
 	tinygo flash -target=pico -monitor ./cmd/picosynth
+
+run-local: check
+	go run ./cmd/picosynth
