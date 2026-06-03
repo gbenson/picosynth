@@ -11,13 +11,24 @@ import (
 const (
 	SampleRate = 48000
 	MaxLatency = 10 * time.Millisecond
+
+	MinVolume     = 0
+	MaxVolume     = 10
+	InitialVolume = 7
 )
 
 type Engine struct {
+	volume int
+}
+
+func (ps *Engine) init() {
+	ps.volume = InitialVolume
 }
 
 // Run is the main entry point of the firmware.
 func (ps *Engine) Run() error {
+	ps.init()
+
 	out, err := audio.Open(SampleRate)
 	if err != nil {
 		return err
@@ -64,8 +75,25 @@ func (ps *Engine) Run() error {
 
 // Fill generates samples into the supplied buffer.
 func (ps *Engine) Fill(buf []uint16) error {
-	for i := range buf {
-		buf[i] = uint16(i << 8)
+	// Final shift converts uint32 to uint16 and applies ps.volume.
+	var finalShift int
+	if v := ps.volume; v <= MinVolume {
+		finalShift = 32 // silence
+	} else {
+		finalShift = (16 + (MaxVolume - v)) & 0x1f
 	}
+
+	for i := range buf {
+		sample := uint32(i) & 255 // sample in [0..0xff]
+		sample |= (sample << 8)   // sample in [0..0xffff]
+		sample |= (sample << 16)  // sample in [0..0xffffffff]
+
+		// Convert uint32 to int32
+		output := int32(sample - 0x80000000)
+
+		// Convert int32 to uint16 and apply ps.volume
+		buf[i] = uint16(int16(output>>finalShift)) + 0x8000
+	}
+
 	return nil
 }
