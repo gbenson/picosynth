@@ -1,6 +1,6 @@
 all: build
 
-PHONY: build check lint run run-local test
+PHONY: build check generate lint run run-local test
 
 check: test
 
@@ -8,7 +8,11 @@ lint:
 	gofmt -w .
 	go vet ./...
 
-test: lint
+generate:
+	go generate ./...
+
+test: lint generate
+	go test ./...
 
 build: check
 	tinygo build -target=pico -o picosynth.uf2 ./cmd/picosynth

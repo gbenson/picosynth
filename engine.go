@@ -18,6 +18,7 @@ const (
 )
 
 type Engine struct {
+	note Note
 	osc1 PhaseAccumulator
 
 	volume int
@@ -25,6 +26,14 @@ type Engine struct {
 
 func (ps *Engine) init() {
 	ps.volume = InitialVolume
+
+	go func() {
+		for {
+			for _, ps.note = range []Note{48, 52, 55, 59, 60, 59, 55, 52} {
+				time.Sleep(180 * time.Millisecond)
+			}
+		}
+	}()
 }
 
 // Run is the main entry point of the firmware.
@@ -86,7 +95,7 @@ func (ps *Engine) Fill(buf []uint16) error {
 	}
 
 	for i := range buf {
-		ps.osc1.Frequency = 220 * Hz
+		ps.osc1.Frequency = ps.note.Pitch().Frequency()
 		ps.osc1.Step()
 
 		// Convert uint32 to int32
