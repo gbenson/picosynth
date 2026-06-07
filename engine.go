@@ -98,8 +98,7 @@ func (ps *Engine) Fill(buf []uint16) error {
 		ps.osc1.Frequency = ps.note.Pitch().Frequency()
 		ps.osc1.Step()
 
-		// Convert uint32 to int32
-		output := int32(ps.osc1.Phase - 0x80000000)
+		output := ps.osc1.Phase
 
 		// Convert int32 to uint16 and apply ps.volume
 		buf[i] = uint16(int16(output>>finalShift)) + 0x8000

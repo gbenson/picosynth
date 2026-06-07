@@ -3,13 +3,13 @@ package picosynth
 //go:generate go run make-frequency-table.go
 
 // The frequency of a waveform, scaled such that the interval
-// [0,MaxUint32+1] represents [0,SampleRate].  Note the upper
+// [0,MaxSignal+1] represents [0,SampleRate/2].  Note the upper
 // bound will be inexact if SampleRate is not a power of two.
-type Frequency uint32
+type Frequency Signal
 
 // Common units of frequency.
 const (
-	KHz Frequency = (1000 << 32) / SampleRate
+	KHz Frequency = (1000 << SignalBits) / SampleRate
 	Hz            = KHz / 1000
 	BPM           = Hz / 60
 )
