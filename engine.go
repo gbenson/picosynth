@@ -38,15 +38,23 @@ type Engine struct {
 
 	octave int
 
-	osc1 PhaseAccumulator
+	lfo1 BasicOscillator
 
 	ampEnv Envelope
+
+	osc1 BasicOscillator
 
 	volume int
 }
 
 func (ps *Engine) init() {
 	ps.kt.init()
+
+	ps.lfo1.Frequency = 10 * Hz
+	ps.lfo1.Shaper = SineShaper
+
+	ps.osc1.Shaper = TriSawShaper
+	ps.osc1.Shape = MaxSignal // rising saw
 
 	ps.setOctave(InitialOctave)
 	ps.setVolume(InitialVolume)
@@ -129,10 +137,13 @@ func (ps *Engine) Fill(buf []int16) error {
 	ps.ampEnv.Gate = ps.kt.Gate
 
 	for i := range buf {
-		ps.osc1.Frequency = pitch.Frequency()
+		ps.lfo1.Step()
+
+		osc1Pitch := Pitch(Signal(pitch) + (ps.lfo1.Output >> 9))
+		ps.osc1.Frequency = osc1Pitch.Frequency()
 		ps.osc1.Step()
 
-		output := ps.osc1.Phase
+		output := ps.osc1.Output
 
 		ps.ampEnv.Step()
 		output = output.Mul(ps.ampEnv.Level)
