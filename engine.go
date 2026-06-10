@@ -17,6 +17,8 @@ const (
 )
 
 type Engine struct {
+	ks KeyScanner
+
 	note Note
 	osc1 PhaseAccumulator
 
@@ -45,8 +47,9 @@ func (ps *Engine) Run() error {
 	}
 	defer out.Close()
 
-	const numWorkers = 2 // filler, player
+	const numWorkers = 3 // keyscanner, filler, player
 	wm := newWorkerManager(numWorkers)
+	wm.Start(&ps.ks)
 
 	// Calculate how many frames we can buffer without exceeding
 	// MaxLatency, then round down to a power of two.
@@ -63,6 +66,14 @@ func (ps *Engine) Run() error {
 
 // Fill generates samples into the supplied buffer.
 func (ps *Engine) Fill(buf []uint16) error {
+	for e := ps.ks.Poll(); e != NoEvent; e = ps.ks.Poll() {
+		if e.Down() {
+			println(e.Scancode(), "down")
+		} else {
+			println(e.Scancode(), "up")
+		}
+	}
+
 	// Final shift converts uint32 to uint16 and applies ps.volume.
 	var finalShift int
 	if v := ps.volume; v <= MinVolume {
