@@ -1,4 +1,4 @@
-package dbuf
+package picosynth
 
 import (
 	"errors"

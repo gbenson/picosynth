@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"gbenson.net/go/picosynth/internal/audio"
-	"gbenson.net/go/picosynth/internal/dbuf"
 )
 
 const (
@@ -46,42 +45,20 @@ func (ps *Engine) Run() error {
 	}
 	defer out.Close()
 
+	const numWorkers = 2 // filler, player
+	wm := newWorkerManager(numWorkers)
+
 	// Calculate how many frames we can buffer without exceeding
-	// MaxLatency, round down to a power of two, then allocate a
-	// buffer *twice* that size for double buffering.
+	// MaxLatency, then round down to a power of two.
 	bufferFrames := int(SampleRate * MaxLatency / time.Second)
 	bufferFrames = 1 << (bits.Len(uint(bufferFrames)) - 1)
-	buffers := make([]uint16, bufferFrames*2)
 
-	// player plays A then waits for B
-	// filler fills B then waits for A
-	fillMe := make(chan []uint16, 2)
-	playMe := make(chan []uint16)
-	errors := make(chan error, 2)
+	db := newDoubleBuffer[uint16](bufferFrames, ps.Fill, out.WriteMono)
 
-	filler := dbuf.Worker{
-		Name: "filler",
-		InC:  fillMe,
-		OutC: playMe,
-		ErrC: errors,
-		Func: ps.Fill,
-	}
+	wm.Start(db.Filler)
+	wm.Start(db.Player)
 
-	player := dbuf.Worker{
-		Name: "player",
-		InC:  playMe,
-		OutC: fillMe,
-		ErrC: errors,
-		Func: out.WriteMono,
-	}
-
-	fillMe <- buffers[:bufferFrames]
-	fillMe <- buffers[bufferFrames:]
-
-	filler.Start()
-	player.Start()
-
-	return <-errors
+	return wm.Wait()
 }
 
 // Fill generates samples into the supplied buffer.
