@@ -11,6 +11,18 @@ const (
 	SampleRate = 48000
 	MaxLatency = 10 * time.Millisecond
 
+	// Split MaxLatency between scanning keys and playing audio.
+	// Currently maxLatency is *half* of MaxLatency because:
+	//  - The KeyScanner loop takes the first part, the limiting
+	//    case being a key or button changing state the instant
+	//    after being scanned, and a full loop has to complete
+	//    before a KeyEvent will be emitted.
+	//  - The time it takes to play the audio buffer takes up
+	//    the second part, the limiting case being that the first
+	//    sample generated into every buffer has to wait for the
+	//    entire other buffer to play before it will be output.
+	maxLatency = MaxLatency / 2
+
 	MinVolume     = 0
 	MaxVolume     = 10
 	InitialVolume = 7
@@ -44,8 +56,8 @@ func (ps *Engine) Run() error {
 	wm.Start(&ps.ks)
 
 	// Calculate how many frames we can buffer without exceeding
-	// MaxLatency, then round down to a power of two.
-	bufferFrames := int(SampleRate * MaxLatency / time.Second)
+	// maxLatency, then round down to a power of two.
+	bufferFrames := int(SampleRate * maxLatency / time.Second)
 	bufferFrames = 1 << (bits.Len(uint(bufferFrames)) - 1)
 
 	db := newDoubleBuffer[uint16](bufferFrames, ps.Fill, out.WriteMono)

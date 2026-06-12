@@ -39,7 +39,7 @@ func (ks *KeyScanner) run() error {
 	}
 
 	lastState := make([]bool, len(rows)*len(cols))
-	settleTime := MaxLatency / time.Duration(len(rows))
+	settleTime := maxLatency / time.Duration(len(rows))
 
 	for {
 		var sc Scancode
