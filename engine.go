@@ -27,14 +27,6 @@ type Engine struct {
 
 func (ps *Engine) init() {
 	ps.volume = InitialVolume
-
-	go func() {
-		for {
-			for _, ps.note = range []Note{48, 52, 55, 59, 60, 59, 55, 52} {
-				time.Sleep(180 * time.Millisecond)
-			}
-		}
-	}()
 }
 
 // Run is the main entry point of the firmware.
