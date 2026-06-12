@@ -30,14 +30,17 @@ const (
 
 type Engine struct {
 	ks KeyScanner
+	kt KeyTracker
 
-	note Note
+	transpose int
+
 	osc1 PhaseAccumulator
 
 	volume int
 }
 
 func (ps *Engine) init() {
+	ps.transpose = -12 // XXX
 	ps.volume = InitialVolume
 }
 
@@ -71,10 +74,11 @@ func (ps *Engine) Run() error {
 // Fill generates samples into the supplied buffer.
 func (ps *Engine) Fill(buf []uint16) error {
 	for e := ps.ks.Poll(); e != NoEvent; e = ps.ks.Poll() {
-		if e.Down() {
-			println(e.Scancode(), "down")
-		} else {
-			println(e.Scancode(), "up")
+		sc := e.Scancode()
+		if note := sc.Note(); note != NoNote {
+			ps.kt.Receive(note, e.Down())
+		} else if !e.Down() {
+			println("button", sc, "pressed")
 		}
 	}
 
@@ -86,8 +90,11 @@ func (ps *Engine) Fill(buf []uint16) error {
 		finalShift = (16 + (MaxVolume - v)) & 0x1f
 	}
 
+	ps.kt.Step()
+	note := ps.kt.Note.Transpose(ps.transpose)
+
 	for i := range buf {
-		ps.osc1.Frequency = ps.note.Pitch().Frequency()
+		ps.osc1.Frequency = note.Pitch().Frequency()
 		ps.osc1.Step()
 
 		output := ps.osc1.Phase

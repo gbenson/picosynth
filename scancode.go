@@ -73,3 +73,12 @@ const (
 	undefKO6KI6 // KI6
 	ButtonSong  // KI7
 )
+
+// Note returns the MIDI note of the key encoded by this scancode,
+// or NoNote if this scancode does not encode a musical note.
+func (sc Scancode) Note() Note {
+	if sc > KeyC6 {
+		return NoNote
+	}
+	return Note(sc-KeyC4) + noteC4
+}

@@ -54,9 +54,19 @@ func (p Pitch) Frequency() Frequency {
 // A MIDI note, with Note(60) being middle C.
 type Note uint8
 
+const noteC4 = Note(60)
+
+// NoNote is used to indicate "not a note".
+const NoNote = Note(0xff)
+
 // Pitch returns the note's center frequency as a Pitch.
 func (note Note) Pitch() Pitch {
 	octave := note / 12
 	note -= octave * 12
 	return Pitch(uint32(octave)<<28) | Pitch(note)*Semitone
+}
+
+// Transpose returns the note after transposition by the given interval.
+func (note Note) Transpose(semitones int) Note {
+	return Note(max(0, min(127, int(note)+semitones)))
 }
