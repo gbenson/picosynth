@@ -26,13 +26,17 @@ const (
 	MinVolume     = 0
 	MaxVolume     = 10
 	InitialVolume = 7
+
+	MinOctave     = -3
+	MaxOctave     = 3
+	InitialOctave = -1
 )
 
 type Engine struct {
 	ks KeyScanner
 	kt KeyTracker
 
-	transpose int
+	octave int
 
 	osc1 PhaseAccumulator
 
@@ -40,8 +44,8 @@ type Engine struct {
 }
 
 func (ps *Engine) init() {
-	ps.transpose = -12 // XXX
-	ps.volume = InitialVolume
+	ps.setOctave(InitialOctave)
+	ps.setVolume(InitialVolume)
 }
 
 // Run is the main entry point of the firmware.
@@ -71,14 +75,39 @@ func (ps *Engine) Run() error {
 	return wm.Wait()
 }
 
+func (ps *Engine) onButton(sc Scancode) {
+	switch sc {
+	case ButtonVolumeUp:
+		ps.setVolume(ps.volume + 1)
+	case ButtonVolumeDown:
+		ps.setVolume(ps.volume - 1)
+	case ButtonTempoUp:
+		ps.setOctave(ps.octave + 1)
+	case ButtonTempoDown:
+		ps.setOctave(ps.octave - 1)
+	default:
+		println("button", sc, "pressed")
+	}
+}
+
+func (ps *Engine) setOctave(v int) {
+	ps.octave = max(MinOctave, min(MaxOctave, v))
+	println("octave", ps.octave)
+}
+
+func (ps *Engine) setVolume(v int) {
+	ps.volume = max(MinVolume, min(MaxVolume, v))
+	println("volume", ps.volume)
+}
+
 // Fill generates samples into the supplied buffer.
 func (ps *Engine) Fill(buf []uint16) error {
 	for e := ps.ks.Poll(); e != NoEvent; e = ps.ks.Poll() {
 		sc := e.Scancode()
-		if note := sc.Note(); note != NoNote {
+		if note := sc.Note(); note.IsValid() {
 			ps.kt.Receive(note, e.Down())
 		} else if !e.Down() {
-			println("button", sc, "pressed")
+			ps.onButton(sc)
 		}
 	}
 
@@ -91,7 +120,7 @@ func (ps *Engine) Fill(buf []uint16) error {
 	}
 
 	ps.kt.Step()
-	note := ps.kt.Note.Transpose(ps.transpose)
+	note := ps.kt.Note.Transpose(ps.octave * 12)
 
 	for i := range buf {
 		ps.osc1.Frequency = note.Pitch().Frequency()

@@ -59,6 +59,11 @@ const noteC4 = Note(60)
 // NoNote is used to indicate "not a note".
 const NoNote = Note(0xff)
 
+// IsValid reports whether this is a valid MIDI note.
+func (note Note) IsValid() bool {
+	return note >= 0 && note < 128
+}
+
 // Pitch returns the note's center frequency as a Pitch.
 func (note Note) Pitch() Pitch {
 	octave := note / 12
