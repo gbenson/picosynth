@@ -111,7 +111,7 @@ func (ps *Engine) Fill(buf []uint16) error {
 		}
 	}
 
-	// Final shift converts uint32 to uint16 and applies ps.volume.
+	// Final shift converts 32-bit to 16 and applies ps.volume.
 	var finalShift int
 	if v := ps.volume; v <= MinVolume {
 		finalShift = 32 // silence
@@ -128,8 +128,12 @@ func (ps *Engine) Fill(buf []uint16) error {
 
 		output := ps.osc1.Phase
 
-		// Convert int32 to uint16 and apply ps.volume
-		buf[i] = uint16(int16(output>>finalShift)) + 0x8000
+		// Convert 32-bit to 16 and apply ps.volume.  Note, we cast
+		// to uint16 because that's how piolib I2S.WriteMono wants
+		// things, but the cast doesn't change the *bits*, the I2S
+		// protocol specifies signed (two's complement) audio data
+		// and that's what we're writing into the buffer.
+		buf[i] = uint16(output >> finalShift)
 	}
 
 	return nil

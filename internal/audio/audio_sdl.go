@@ -55,9 +55,14 @@ func (sink *device) start(bufferFrames int) error {
 	sink.errC = make(chan error)
 	sink.pinner.Pin(sink)
 
+	// WriteMono receives []uint16 buffers, but we open the audio
+	// device with sdl.AUDIO_S16SYS (*not* sdl.AUDIO_U16SYS!)  This
+	// was done to match github.com/tinygo-org/pio/rp2-pio/piolib's
+	// I2S implementation and is intentional.  See the piolib note
+	// in [Engine.Fill] for more gory detail.
 	desiredSpec := sdl.AudioSpec{
 		Freq:     int32(sink.sampleRate),
-		Format:   sdl.AUDIO_U16SYS,
+		Format:   sdl.AUDIO_S16SYS, // intentional (see above)
 		Channels: 1,
 		Samples:  uint16(bufferFrames),
 		Callback: sdl.AudioCallback(C.fillBuffer),
