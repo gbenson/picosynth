@@ -16,7 +16,7 @@ import (
 type device struct {
 	sampleRate   int
 	started      bool
-	outC         chan []uint16
+	outC         chan []int16
 	errC         chan error
 	pinner       runtime.Pinner
 	deviceID     sdl.AudioDeviceID
@@ -28,7 +28,7 @@ func open(sampleRate int) (Device, error) {
 }
 
 // WriteMono implements [Device].
-func (d *device) WriteMono(buf []uint16) error {
+func (d *device) WriteMono(buf []int16) error {
 	if !d.started {
 		if err := d.start(len(buf)); err != nil {
 			return err
@@ -51,18 +51,13 @@ func (sink *device) start(bufferFrames int) error {
 		}
 	}
 
-	sink.outC = make(chan []uint16)
+	sink.outC = make(chan []int16)
 	sink.errC = make(chan error)
 	sink.pinner.Pin(sink)
 
-	// WriteMono receives []uint16 buffers, but we open the audio
-	// device with sdl.AUDIO_S16SYS (*not* sdl.AUDIO_U16SYS!)  This
-	// was done to match github.com/tinygo-org/pio/rp2-pio/piolib's
-	// I2S implementation and is intentional.  See the piolib note
-	// in [Engine.Fill] for more gory detail.
 	desiredSpec := sdl.AudioSpec{
 		Freq:     int32(sink.sampleRate),
-		Format:   sdl.AUDIO_S16SYS, // intentional (see above)
+		Format:   sdl.AUDIO_S16SYS,
 		Channels: 1,
 		Samples:  uint16(bufferFrames),
 		Callback: sdl.AudioCallback(C.fillBuffer),
@@ -120,7 +115,7 @@ func fillBuffer(sinkPtr unsafe.Pointer, stream *C.Uint8, length C.int) {
 	sink := (*device)(sinkPtr)
 
 	src := <-sink.outC
-	dst := unsafe.Slice((*uint16)(unsafe.Pointer(stream)), length/2)
+	dst := unsafe.Slice((*int16)(unsafe.Pointer(stream)), length/2)
 	copy(dst, src)
 
 	sink.errC <- nil

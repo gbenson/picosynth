@@ -71,7 +71,7 @@ func (ps *Engine) Run() error {
 	bufferFrames := int(SampleRate * maxLatency / time.Second)
 	bufferFrames = 1 << (bits.Len(uint(bufferFrames)) - 1)
 
-	db := newDoubleBuffer[uint16](bufferFrames, ps.Fill, out.WriteMono)
+	db := newDoubleBuffer[int16](bufferFrames, ps.Fill, out.WriteMono)
 
 	wm.Start(db.Filler)
 	wm.Start(db.Player)
@@ -106,7 +106,7 @@ func (ps *Engine) setVolume(v int) {
 }
 
 // Fill generates samples into the supplied buffer.
-func (ps *Engine) Fill(buf []uint16) error {
+func (ps *Engine) Fill(buf []int16) error {
 	for e := ps.ks.Poll(); e != NoEvent; e = ps.ks.Poll() {
 		sc := e.Scancode()
 		if note := sc.Note(); note.IsValid() {
@@ -137,12 +137,8 @@ func (ps *Engine) Fill(buf []uint16) error {
 		ps.ampEnv.Step()
 		output = output.Mul(ps.ampEnv.Level)
 
-		// Convert 32-bit to 16 and apply ps.volume.  Note, we cast
-		// to uint16 because that's how piolib I2S.WriteMono wants
-		// things, but the cast doesn't change the *bits*, the I2S
-		// protocol specifies signed (two's complement) audio data
-		// and that's what we're writing into the buffer.
-		buf[i] = uint16(output >> finalShift)
+		// Convert 32-bit to 16 and apply ps.volume.
+		buf[i] = int16(output >> finalShift)
 	}
 
 	return nil

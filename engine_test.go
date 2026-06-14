@@ -3,51 +3,33 @@ package picosynth
 import (
 	"slices"
 	"testing"
-	"unsafe"
 
 	"gotest.tools/v3/assert"
 )
 
-func generateAudio(ps *Engine, numSamples int) ([]int16, error) {
-	// github.com/tinygo-org/pio/rp2-pio/piolib I2S devices
-	// expect mono audio in []uint16 buffers...
-	buf := make([]uint16, numSamples)
-	if err := ps.Fill(buf); err != nil {
-		return nil, err
-	}
+func volumeTest(t *testing.T, volume int) (lo, hi int16) {
+	t.Helper()
 
-	// ...but the DAC interprets the values as signed.
-	ptr := unsafe.Pointer(unsafe.SliceData(buf))
-	return unsafe.Slice((*int16)(ptr), len(buf)), nil
-}
+	ps := &Engine{}
+	ps.init()
+	ps.setVolume(volume)
+	ps.kt.notes[127] = Note(127)
 
-func minmax(buf []int16) (lo, hi int16) {
+	buf := make([]int16, 128)
+	assert.NilError(t, ps.Fill(buf))
+
 	return slices.Min(buf), slices.Max(buf)
 }
 
 func TestSilence(t *testing.T) {
-	ps := &Engine{}
-	ps.init()
-	ps.setVolume(MinVolume)
-	ps.kt.notes[127] = Note(127)
-
-	buf, err := generateAudio(ps, 128)
-	assert.NilError(t, err)
-	lo, hi := minmax(buf)
+	lo, hi := volumeTest(t, MinVolume)
 	t.Logf("min = %d, max = %d", lo, hi)
 	assert.Check(t, lo >= int16(-1))
 	assert.Check(t, hi <= int16(0))
 }
 
 func TestMinVolume(t *testing.T) {
-	ps := &Engine{}
-	ps.init()
-	ps.setVolume(MinVolume + 1)
-	ps.kt.notes[127] = Note(127)
-
-	buf, err := generateAudio(ps, 128)
-	assert.NilError(t, err)
-	lo, hi := minmax(buf)
+	lo, hi := volumeTest(t, MinVolume+1)
 	t.Logf("min = %d, max = %d", lo, hi)
 	assert.Check(t, lo >= int16(-64))
 	assert.Check(t, lo < int16(-32))
@@ -56,14 +38,7 @@ func TestMinVolume(t *testing.T) {
 }
 
 func TestMaxVolume(t *testing.T) {
-	ps := &Engine{}
-	ps.init()
-	ps.setVolume(MaxVolume)
-	ps.kt.notes[127] = Note(127)
-
-	buf, err := generateAudio(ps, 128)
-	assert.NilError(t, err)
-	lo, hi := minmax(buf)
+	lo, hi := volumeTest(t, MaxVolume)
 	t.Logf("min = %d, max = %d", lo, hi)
 	assert.Check(t, lo < int16(-16384))
 	assert.Check(t, hi > int16(16383))

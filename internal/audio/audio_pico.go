@@ -4,6 +4,7 @@ package audio
 
 import (
 	"machine"
+	"unsafe"
 
 	"github.com/tinygo-org/pio/rp2-pio"
 	"github.com/tinygo-org/pio/rp2-pio/piolib"
@@ -47,8 +48,11 @@ func newDevice(sm pio.StateMachine, sampleRate int) (*device, error) {
 }
 
 // WriteMono implements [Device].
-func (d *device) WriteMono(buf []uint16) error {
-	_, err := d.i2s.WriteMono(buf)
+func (d *device) WriteMono(buf []int16) error {
+	ptr := unsafe.Pointer(unsafe.SliceData(buf))
+	data := unsafe.Slice((*uint16)(ptr), len(buf))
+
+	_, err := d.i2s.WriteMono(data)
 	return err
 }
 
