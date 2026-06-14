@@ -44,6 +44,8 @@ type Engine struct {
 }
 
 func (ps *Engine) init() {
+	ps.kt.init()
+
 	ps.setOctave(InitialOctave)
 	ps.setVolume(InitialVolume)
 }
@@ -93,6 +95,7 @@ func (ps *Engine) onButton(sc Scancode) {
 func (ps *Engine) setOctave(v int) {
 	ps.octave = max(MinOctave, min(MaxOctave, v))
 	println("octave", ps.octave)
+	ps.kt.Transpose = ps.octave * 12
 }
 
 func (ps *Engine) setVolume(v int) {
@@ -120,10 +123,10 @@ func (ps *Engine) Fill(buf []uint16) error {
 	}
 
 	ps.kt.Step()
-	note := ps.kt.Note.Transpose(ps.octave * 12)
+	pitch := ps.kt.Note.Pitch()
 
 	for i := range buf {
-		ps.osc1.Frequency = note.Pitch().Frequency()
+		ps.osc1.Frequency = pitch.Frequency()
 		ps.osc1.Step()
 
 		output := ps.osc1.Phase

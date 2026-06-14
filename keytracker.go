@@ -1,22 +1,46 @@
 package picosynth
 
 type KeyTracker struct {
-	notes [128]bool
+	Transpose int // Transposition to apply, in semitones.
+
+	notes [128]Note // Which playing note did each held-down key trigger?
 
 	Note Note // The last played note.
 	Gate bool // true if a note is playing, false otherwise.
 }
 
+func (kt *KeyTracker) init() {
+	for key := range kt.notes {
+		kt.notes[key] = NoNote
+	}
+}
+
 func (kt *KeyTracker) Receive(key Note, down bool) {
-	kt.notes[key] = down
+	note := NoNote
+	if down {
+		note = key.Transpose(kt.Transpose)
+		println(key, "=>", note)
+	}
+	kt.notes[key] = note
 }
 
 func (kt *KeyTracker) Step() {
-	for key, down := range kt.notes {
-		if !down {
+	winner := NoNote
+
+	for _, note := range kt.notes {
+		if !note.IsValid() {
 			continue
+		} else if note > winner {
+			// highest wins
+			winner = note
 		}
-		kt.Note = Note(key)
+	}
+
+	if winner.IsValid() {
+		kt.Note = winner
 		kt.Gate = true
+	} else {
+		kt.Gate = false
+		// leave kt.Note floating
 	}
 }

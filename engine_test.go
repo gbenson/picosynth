@@ -23,8 +23,8 @@ func generateAudio(ps *Engine, numSamples int) ([]int16, error) {
 
 func TestSilence(t *testing.T) {
 	ps := &Engine{}
-	ps.volume = MinVolume
-	ps.octave = 0
+	ps.init()
+	ps.setVolume(MinVolume)
 	ps.kt.Note = Note(127)
 
 	buf, err := generateAudio(ps, 128)
@@ -35,8 +35,8 @@ func TestSilence(t *testing.T) {
 
 func TestMinVolume(t *testing.T) {
 	ps := &Engine{}
-	ps.volume = MinVolume + 1
-	ps.octave = 0
+	ps.init()
+	ps.setVolume(MinVolume + 1)
 	ps.kt.Note = Note(127)
 
 	buf, err := generateAudio(ps, 128)
@@ -49,8 +49,8 @@ func TestMinVolume(t *testing.T) {
 
 func TestMaxVolume(t *testing.T) {
 	ps := &Engine{}
-	ps.volume = MaxVolume
-	ps.octave = 0
+	ps.init()
+	ps.setVolume(MaxVolume)
 	ps.kt.Note = Note(127)
 
 	buf, err := generateAudio(ps, 128)
