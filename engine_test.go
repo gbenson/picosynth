@@ -21,40 +21,50 @@ func generateAudio(ps *Engine, numSamples int) ([]int16, error) {
 	return unsafe.Slice((*int16)(ptr), len(buf)), nil
 }
 
+func minmax(buf []int16) (lo, hi int16) {
+	return slices.Min(buf), slices.Max(buf)
+}
+
 func TestSilence(t *testing.T) {
 	ps := &Engine{}
 	ps.init()
 	ps.setVolume(MinVolume)
-	ps.kt.Note = Note(127)
+	ps.kt.notes[127] = Note(127)
 
 	buf, err := generateAudio(ps, 128)
 	assert.NilError(t, err)
-	assert.Check(t, slices.Min(buf) >= int16(-1))
-	assert.Check(t, slices.Max(buf) <= int16(0))
+	lo, hi := minmax(buf)
+	t.Logf("min = %d, max = %d", lo, hi)
+	assert.Check(t, lo >= int16(-1))
+	assert.Check(t, hi <= int16(0))
 }
 
 func TestMinVolume(t *testing.T) {
 	ps := &Engine{}
 	ps.init()
 	ps.setVolume(MinVolume + 1)
-	ps.kt.Note = Note(127)
+	ps.kt.notes[127] = Note(127)
 
 	buf, err := generateAudio(ps, 128)
 	assert.NilError(t, err)
-	assert.Check(t, slices.Min(buf) >= int16(-64))
-	assert.Check(t, slices.Min(buf) < int16(-32))
-	assert.Check(t, slices.Max(buf) > int16(31))
-	assert.Check(t, slices.Max(buf) <= int16(63))
+	lo, hi := minmax(buf)
+	t.Logf("min = %d, max = %d", lo, hi)
+	assert.Check(t, lo >= int16(-64))
+	assert.Check(t, lo < int16(-32))
+	assert.Check(t, hi > int16(31))
+	assert.Check(t, hi <= int16(63))
 }
 
 func TestMaxVolume(t *testing.T) {
 	ps := &Engine{}
 	ps.init()
 	ps.setVolume(MaxVolume)
-	ps.kt.Note = Note(127)
+	ps.kt.notes[127] = Note(127)
 
 	buf, err := generateAudio(ps, 128)
 	assert.NilError(t, err)
-	assert.Check(t, slices.Min(buf) < int16(-16384))
-	assert.Check(t, slices.Max(buf) > int16(16383))
+	lo, hi := minmax(buf)
+	t.Logf("min = %d, max = %d", lo, hi)
+	assert.Check(t, lo < int16(-16384))
+	assert.Check(t, hi > int16(16383))
 }

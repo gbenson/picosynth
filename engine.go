@@ -40,6 +40,8 @@ type Engine struct {
 
 	osc1 PhaseAccumulator
 
+	ampEnv Envelope
+
 	volume int
 }
 
@@ -124,12 +126,16 @@ func (ps *Engine) Fill(buf []uint16) error {
 
 	ps.kt.Step()
 	pitch := ps.kt.Note.Pitch()
+	ps.ampEnv.Gate = ps.kt.Gate
 
 	for i := range buf {
 		ps.osc1.Frequency = pitch.Frequency()
 		ps.osc1.Step()
 
 		output := ps.osc1.Phase
+
+		ps.ampEnv.Step()
+		output = output.Mul(ps.ampEnv.Level)
 
 		// Convert 32-bit to 16 and apply ps.volume.  Note, we cast
 		// to uint16 because that's how piolib I2S.WriteMono wants
