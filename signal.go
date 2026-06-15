@@ -27,6 +27,7 @@ func (a Signal) Mul(b Signal) Signal {
 	return Signal((int64(a) * int64(b)) >> 31)
 }
 
+// String implements [fmt.Stringer].
 func (v Signal) String() string {
 	return fmt.Sprintf("0x%08x", uint32(v))
 }
