@@ -19,8 +19,8 @@ test: lint generate
 build: check
 	tinygo build $(GOFLAGS) -o picosynth.uf2 ./cmd/picosynth
 
-run: check
+flash: check
 	tinygo flash $(GOFLAGS) -monitor ./cmd/picosynth
 
-run-local: check
+run: check
 	go run ./cmd/picosynth
