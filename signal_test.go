@@ -50,6 +50,5 @@ func TestSignalMul(t *testing.T) {
 			}
 		}
 		t.Log(tc.a, "×", tc.b, "=", got, wanted)
-		//assert.Equal(t, got, tc.want)
 	}
 }
