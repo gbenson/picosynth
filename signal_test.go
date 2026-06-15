@@ -1,6 +1,9 @@
 package picosynth
 
-import "testing"
+import (
+	"math"
+	"testing"
+)
 
 func TestSignalMul(t *testing.T) {
 	for _, tc := range []struct {
@@ -51,4 +54,30 @@ func TestSignalMul(t *testing.T) {
 		}
 		t.Log(tc.a, "×", tc.b, "=", got, wanted)
 	}
+}
+
+func TestSignalSin(t *testing.T) {
+	var maxF64Err float64
+
+	for x := range 400 {
+		want := Signal(min(MaxSignal, -math.Sin(float64(x)*math.Pi/180)*MinSignal))
+		got := (Signal(x) * Degree).Sin()
+
+		// What's the integer error across the MinSignal..MaxSignal range?
+		i32Err := int(want) - int(got)
+		if i32Err < 0 {
+			i32Err = -i32Err
+		}
+
+		// What's that error scaled into the -1..1 range of math.Sin()?
+		f64Err := float64(i32Err) / (float64(MaxSignal) - float64(MinSignal))
+		maxF64Err = max(f64Err, maxF64Err)
+
+		t.Logf("x=%d°: want(%v)-got(%v) = %.2g", x, want, got, f64Err)
+		if math.Abs(f64Err) > 1e-3 {
+			t.FailNow()
+		}
+	}
+
+	t.Log("maxF64Err =", maxF64Err)
 }

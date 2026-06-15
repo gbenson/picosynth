@@ -16,6 +16,19 @@ const (
 	MaxSignal  = math.MaxInt32
 )
 
+// Constants for interpreting Signal as a phase with range [-π,π).
+// Note that `Signal(Pi)` will overflow, but using Pi to construct
+// fractions that resolve at compile time is e.g. Pi/4 is ok.
+const (
+	Pi     = -MinSignal
+	Degree = Pi / 180
+)
+
+// Sin returns the sine of the signal x.
+func (x Signal) Sin() Signal {
+	return SineTable.Get(x)
+}
+
 // Mul returns the signed Q1.31 product of a and b.
 //
 // Note that MinSignal.Mul(MinSignal) overflows, returning MinSignal
