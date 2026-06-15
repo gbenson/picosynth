@@ -19,7 +19,6 @@ func (kt *KeyTracker) Receive(key Note, down bool) {
 	note := NoNote
 	if down {
 		note = key.Transpose(kt.Transpose)
-		println(key, "=>", note)
 	}
 	kt.notes[key] = note
 }
