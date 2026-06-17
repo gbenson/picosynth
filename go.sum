@@ -1,3 +1,5 @@
+gbenson.net/go/microfont v0.5.0 h1:dLQkQRh2qj/DMBD8IB2pDKR6Zwn490OXzjdzym8leWk=
+gbenson.net/go/microfont v0.5.0/go.mod h1:4/SoLL5AL4cvDYuRD0UAv329zWf+yKtVVbwTXojOpv8=
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
 github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX3N/iU=
 github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 h1:El6M4kTTCOh6aBiKaUGG7oYTSPP8MxqL4YI3kZKwcP4=
@@ -6,6 +8,8 @@ github.com/tinygo-org/pio v0.3.0 h1:opEnOtw58KGB4RJD3/n/Rd0/djYGX3DeJiXLI6y/yDI=
 github.com/tinygo-org/pio v0.3.0/go.mod h1:wf6c6lKZp+pQOzKKcpzchmRuhiMc27ABRuo7KVnaMFU=
 github.com/veandco/go-sdl2 v0.4.40 h1:fZv6wC3zz1Xt167P09gazawnpa0KY5LM7JAvKpX9d/U=
 github.com/veandco/go-sdl2 v0.4.40/go.mod h1:OROqMhHD43nT4/i9crJukyVecjPNYYuCofep6SNiAjY=
+golang.org/x/image v0.38.0 h1:5l+q+Y9JDC7mBOMjo4/aPhMDcxEptsX+Tt3GgRQRPuE=
+golang.org/x/image v0.38.0/go.mod h1:/3f6vaXC+6CEanU4KJxbcUZyEePbyKbaLoDOe4ehFYY=
 gotest.tools/v3 v3.5.2 h1:7koQfIKdy+I8UTetycgUqXWSDwpgv193Ka+qRsmBY8Q=
 gotest.tools/v3 v3.5.2/go.mod h1:LtdLGcnqToBH83WByAAi/wiwSFCArdFIUV/xxN4pcjA=
 tinygo.org/x/drivers v0.35.0 h1:cTK36tsI/S4Mg3hCPH0MBjV/ta7XKQ+wpvch4mVqgsE=
