@@ -1,29 +1,31 @@
-//go:build !tinygo
+package emulator
 
-package keyboard
+import (
+	"time"
 
-import "time"
+	"gbenson.net/go/picosynth/internal/hw"
+)
 
-type keyboard struct {
+type Keyboard struct {
 	rows [5]bool
 	cols [4]bool
 
-	rowPins []Row
-	colPins []Column
+	rowPins []hw.Row
+	colPins []hw.Column
 
 	arp arpeggiator
 }
 
-func newKeyboard() Keyboard {
-	kb := &keyboard{
+func NewKeyboard() *Keyboard {
+	kb := &Keyboard{
 		arp: arpeggiator{
 			Notes: []uint8{48, 52, 55, 59, 60, 59, 55, 52},
 			Tempo: 180 * time.Millisecond,
 		},
 	}
 
-	kb.rowPins = make([]Row, len(kb.rows))
-	kb.colPins = make([]Column, len(kb.cols))
+	kb.rowPins = make([]hw.Row, len(kb.rows))
+	kb.colPins = make([]hw.Column, len(kb.cols))
 
 	for i := range kb.rows {
 		kb.rowPins[i] = &rowPin{kb, i}
@@ -34,16 +36,18 @@ func newKeyboard() Keyboard {
 	return kb
 }
 
-func (kb *keyboard) Rows() []Row {
+// Rows implements [hw.Keyboard].
+func (kb *Keyboard) Rows() []hw.Row {
 	return kb.rowPins
 }
 
-func (kb *keyboard) Columns() []Column {
+// Columns implements [hw.Keyboard].
+func (kb *Keyboard) Columns() []hw.Column {
 	return kb.colPins
 }
 
 type pin struct {
-	kb  *keyboard
+	kb  *Keyboard
 	num int
 }
 
@@ -59,7 +63,7 @@ func (p *colPin) Get() bool {
 	return p.kb.cols[p.num]
 }
 
-func (kb *keyboard) update() {
+func (kb *Keyboard) update() {
 	kb.arp.Step()
 	midinote := kb.arp.Note()      // 48..60
 	scancode := int(midinote) - 41 //  7..19

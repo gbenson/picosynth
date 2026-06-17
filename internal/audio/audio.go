@@ -1,13 +1,8 @@
 package audio
 
-import "io"
+import "gbenson.net/go/picosynth/internal/hw"
 
-type Device interface {
-	io.Closer
-
-	// WriteMono writes a mono audio buffer to the audio device.
-	WriteMono(buf []int16) error
-}
+type Device = hw.AudioDevice
 
 // Open opens an output device with the specified sample rate.
 func Open(sampleRate int) (Device, error) {

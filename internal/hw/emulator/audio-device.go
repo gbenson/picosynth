@@ -1,6 +1,4 @@
-//go:build !tinygo
-
-package audio
+package emulator
 
 // typedef unsigned char Uint8;
 // void fillBuffer(void *userdata, Uint8 *stream, int len);
@@ -13,7 +11,7 @@ import (
 	"github.com/veandco/go-sdl2/sdl"
 )
 
-type device struct {
+type AudioDevice struct {
 	sampleRate   int
 	started      bool
 	outC         chan []int16
@@ -23,12 +21,12 @@ type device struct {
 	deviceOpened bool
 }
 
-func open(sampleRate int) (Device, error) {
-	return &device{sampleRate: sampleRate}, nil
+func OpenAudio(sampleRate int) (*AudioDevice, error) {
+	return &AudioDevice{sampleRate: sampleRate}, nil
 }
 
 // WriteMono implements [Device].
-func (d *device) WriteMono(buf []int16) error {
+func (d *AudioDevice) WriteMono(buf []int16) error {
 	if !d.started {
 		if err := d.start(len(buf)); err != nil {
 			return err
@@ -39,7 +37,7 @@ func (d *device) WriteMono(buf []int16) error {
 	return <-d.errC
 }
 
-func (sink *device) start(bufferFrames int) error {
+func (sink *AudioDevice) start(bufferFrames int) error {
 	if sink.started {
 		panic("already started")
 	}
@@ -87,7 +85,7 @@ func (sink *device) start(bufferFrames int) error {
 }
 
 // Close implements [io.Closer].
-func (sink *device) Close() error {
+func (sink *AudioDevice) Close() error {
 	if !sink.started {
 		return nil
 	}
@@ -112,7 +110,7 @@ func (sink *device) Close() error {
 
 //export fillBuffer
 func fillBuffer(sinkPtr unsafe.Pointer, stream *C.Uint8, length C.int) {
-	sink := (*device)(sinkPtr)
+	sink := (*AudioDevice)(sinkPtr)
 
 	src := <-sink.outC
 	dst := unsafe.Slice((*int16)(unsafe.Pointer(stream)), length/2)

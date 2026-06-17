@@ -1,17 +1,12 @@
 package keyboard
 
-type Keyboard interface {
-	Rows() []Row
-	Columns() []Column
-}
+import "gbenson.net/go/picosynth/internal/hw"
 
-type Row interface {
-	Set(bool)
-}
-
-type Column interface {
-	Get() bool
-}
+type (
+	Keyboard = hw.Keyboard
+	Row      = hw.Row
+	Column   = hw.Column
+)
 
 func New() Keyboard {
 	return newKeyboard()
