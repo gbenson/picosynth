@@ -43,10 +43,8 @@ func (sink *AudioDevice) start(bufferFrames int) error {
 	}
 	sink.started = true
 
-	if sdl.WasInit(sdl.INIT_AUDIO) == 0 {
-		if err := sdl.InitSubSystem(sdl.INIT_AUDIO); err != nil {
-			return err
-		}
+	if err := onceInitSDL(); err != nil {
+		return err
 	}
 
 	sink.outC = make(chan []int16)
