@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"gbenson.net/go/picosynth/internal/audio"
+	"gbenson.net/go/picosynth/internal/display"
 )
 
 const (
@@ -33,6 +34,8 @@ const (
 )
 
 type Engine struct {
+	display display.Display
+
 	ks KeyScanner
 	kt KeyTracker
 
@@ -70,8 +73,9 @@ func (ps *Engine) Run() error {
 	}
 	defer out.Close()
 
-	const numWorkers = 3 // keyscanner, filler, player
+	const numWorkers = 4 // display, keyscanner, filler, player
 	wm := newWorkerManager(numWorkers)
+	wm.Start(&ps.display)
 	wm.Start(&ps.ks)
 
 	// Calculate how many frames we can buffer without exceeding
