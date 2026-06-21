@@ -58,7 +58,8 @@ func (d *DisplayBus) onData(buf []byte) error {
 	case setup[3] != ssd1306.PAGEADDR:
 	case setup[4] != 0:
 	default:
-		return renderPixels(int32(setup[2])+1, (int32(setup[5])+1)*8, buf)
+		display.SetBuffer(int32(setup[2])+1, (int32(setup[5])+1)*8, buf)
+		return ensureStarted()
 	}
 
 	return errors.ErrUnsupported
