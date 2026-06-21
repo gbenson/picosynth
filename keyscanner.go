@@ -29,7 +29,10 @@ func (ks *KeyScanner) run() error {
 	defer close(events)
 	ks.events = events
 
-	kb := keyboard.New()
+	kb, err := keyboard.Open()
+	if err != nil {
+		return err
+	}
 
 	rows := kb.Rows()
 	cols := kb.Columns()

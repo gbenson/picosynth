@@ -8,7 +8,7 @@ type AudioDevice interface {
 	WriteMono(buf []int16) error
 }
 
-type Keyboard interface {
+type KeySwitchMatrix interface {
 	Rows() []Row
 	Columns() []Column
 }

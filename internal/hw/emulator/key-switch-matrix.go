@@ -6,7 +6,7 @@ import (
 	"gbenson.net/go/picosynth/internal/hw"
 )
 
-type Keyboard struct {
+type KeySwitchMatrix struct {
 	rows [5]bool
 	cols [4]bool
 
@@ -16,8 +16,8 @@ type Keyboard struct {
 	arp arpeggiator
 }
 
-func NewKeyboard() *Keyboard {
-	kb := &Keyboard{
+func OpenKeySwitchMatrix() (*KeySwitchMatrix, error) {
+	kb := &KeySwitchMatrix{
 		arp: arpeggiator{
 			Notes: []uint8{48, 52, 55, 59, 60, 59, 55, 52},
 			Tempo: 180 * time.Millisecond,
@@ -33,21 +33,21 @@ func NewKeyboard() *Keyboard {
 	for j := range kb.cols {
 		kb.colPins[j] = &colPin{kb, j}
 	}
-	return kb
+	return kb, nil
 }
 
-// Rows implements [hw.Keyboard].
-func (kb *Keyboard) Rows() []hw.Row {
+// Rows implements [hw.KeySwitchMatrix].
+func (kb *KeySwitchMatrix) Rows() []hw.Row {
 	return kb.rowPins
 }
 
-// Columns implements [hw.Keyboard].
-func (kb *Keyboard) Columns() []hw.Column {
+// Columns implements [hw.KeySwitchMatrix].
+func (kb *KeySwitchMatrix) Columns() []hw.Column {
 	return kb.colPins
 }
 
 type pin struct {
-	kb  *Keyboard
+	kb  *KeySwitchMatrix
 	num int
 }
 
@@ -63,7 +63,7 @@ func (p *colPin) Get() bool {
 	return p.kb.cols[p.num]
 }
 
-func (kb *Keyboard) update() {
+func (kb *KeySwitchMatrix) update() {
 	kb.arp.Step()
 	midinote := kb.arp.Note()      // 48..60
 	scancode := int(midinote) - 41 //  7..19

@@ -30,7 +30,7 @@ type keyboard struct {
 	cols []Column
 }
 
-func newKeyboard() Keyboard {
+func open() (KeySwitchMatrix, error) {
 	kb := &keyboard{
 		make([]Row, len(rowPins)),
 		make([]Column, len(colPins)),
@@ -43,7 +43,7 @@ func newKeyboard() Keyboard {
 		pin.Configure(machine.PinConfig{Mode: machine.PinInputPulldown})
 		kb.cols[j] = pin
 	}
-	return kb
+	return kb, nil
 }
 
 func (kb *keyboard) Rows() []Row {
