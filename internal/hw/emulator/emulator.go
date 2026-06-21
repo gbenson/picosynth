@@ -58,7 +58,6 @@ func ensureStarted() error {
 				handleEvent(e)
 			}
 
-			//keyboard.Render(renderer)
 			display.Render(renderer)
 			renderer.Present()
 
@@ -80,8 +79,22 @@ var onceInitSDL = sync.OnceValue(func() error {
 })
 
 func handleEvent(event sdl.Event) {
-	switch event.(type) {
+	switch e := event.(type) {
+	case *sdl.KeyboardEvent:
+		switch {
+		case e.Type != sdl.KEYUP:
+		case e.Keysym.Sym != sdl.K_q:
+		case (e.Keysym.Mod & sdl.KMOD_CTRL) == 0:
+		default:
+			Exit(0)
+		}
+		keyboard.handleEvent(e)
 	case *sdl.QuitEvent:
-		os.Exit(0)
+		Exit(0)
 	}
+}
+
+func Exit(code int) {
+	sdl.Quit()
+	os.Exit(code)
 }

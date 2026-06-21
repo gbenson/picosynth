@@ -1,53 +1,46 @@
 package emulator
 
-import (
-	"time"
-
-	"gbenson.net/go/picosynth/internal/hw"
-)
+import "gbenson.net/go/picosynth/internal/hw"
 
 type KeySwitchMatrix struct {
-	outStates [5]bool
-	inStates  [4]bool
-
 	outputs []hw.OutputPin
 	inputs  []hw.InputPin
 
-	arp arpeggiator
+	energized []bool
 }
 
 func OpenKeySwitchMatrix() (*KeySwitchMatrix, error) {
-	kb := &KeySwitchMatrix{
-		arp: arpeggiator{
-			Notes: []uint8{48, 52, 55, 59, 60, 59, 55, 52},
-			Tempo: 180 * time.Millisecond,
-		},
+	m := &KeySwitchMatrix{}
+
+	numOutputs, numInputs := keyboard.matrixSize()
+
+	m.outputs = make([]hw.OutputPin, numOutputs)
+	m.inputs = make([]hw.InputPin, numInputs)
+
+	for i := range numOutputs {
+		m.outputs[i] = &outputPin{m, i}
+	}
+	for j := range numInputs {
+		m.inputs[j] = &inputPin{m, j}
 	}
 
-	kb.outputs = make([]hw.OutputPin, len(kb.outStates))
-	kb.inputs = make([]hw.InputPin, len(kb.inStates))
+	m.energized = make([]bool, numOutputs)
 
-	for i := range kb.outStates {
-		kb.outputs[i] = &outputPin{kb, i}
-	}
-	for j := range kb.inStates {
-		kb.inputs[j] = &inputPin{kb, j}
-	}
-	return kb, nil
+	return m, ensureStarted()
 }
 
 // Outputs implements [hw.KeySwitchMatrix].
-func (kb *KeySwitchMatrix) Outputs() []hw.OutputPin {
-	return kb.outputs
+func (m *KeySwitchMatrix) Outputs() []hw.OutputPin {
+	return m.outputs
 }
 
 // Inputs implements [hw.KeySwitchMatrix].
-func (kb *KeySwitchMatrix) Inputs() []hw.InputPin {
-	return kb.inputs
+func (m *KeySwitchMatrix) Inputs() []hw.InputPin {
+	return m.inputs
 }
 
 type pin struct {
-	kb  *KeySwitchMatrix
+	ksm *KeySwitchMatrix
 	num int
 }
 
@@ -55,49 +48,21 @@ type outputPin pin
 type inputPin pin
 
 func (p *outputPin) Set(level bool) {
-	p.kb.outStates[p.num] = level
-	p.kb.update()
+	keyboard.mu.Lock()
+	defer keyboard.mu.Unlock()
+
+	p.ksm.energized[p.num] = level
 }
 
 func (p *inputPin) Get() bool {
-	return p.kb.inStates[p.num]
-}
+	keyboard.mu.Lock()
+	defer keyboard.mu.Unlock()
 
-func (kb *KeySwitchMatrix) update() {
-	kb.arp.Step()
-	midinote := kb.arp.Note()      // 48..60
-	scancode := int(midinote) - 41 //  7..19
-
-	// clear input pins
-	for j := range kb.inStates {
-		kb.inStates[j] = false
+	for i, held := range keyboard.matrix[p.num] {
+		if held && p.ksm.energized[i] {
+			return true
+		}
 	}
 
-	output := scancode / len(kb.inStates)
-	if !kb.outStates[output] {
-		return // no input pins high
-	}
-
-	kb.inStates[scancode%len(kb.inStates)] = true
-}
-
-type arpeggiator struct {
-	Notes       []uint8
-	Tempo       time.Duration
-	note        int
-	lastStepped time.Time
-}
-
-func (arp *arpeggiator) Step() {
-	now := time.Now()
-	if now.Sub(arp.lastStepped) < arp.Tempo {
-		return
-	} else if !arp.lastStepped.IsZero() {
-		arp.note = (arp.note + 1) % len(arp.Notes)
-	}
-	arp.lastStepped = now
-}
-
-func (arp *arpeggiator) Note() uint8 {
-	return arp.Notes[arp.note]
+	return false
 }
