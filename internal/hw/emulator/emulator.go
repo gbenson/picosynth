@@ -8,6 +8,11 @@ import (
 	"github.com/veandco/go-sdl2/sdl"
 )
 
+const (
+	WindowWidth  = 1280
+	WindowHeight = 512
+)
+
 var started atomic.Bool
 
 func ensureStarted() error {
@@ -19,15 +24,12 @@ func ensureStarted() error {
 		return err
 	}
 
-	const scale = 2
-	const width = 128 // XXX
-	const height = 32 // XXX
 	window, err := sdl.CreateWindow(
 		"picosynth",
 		sdl.WINDOWPOS_UNDEFINED, // X
 		sdl.WINDOWPOS_UNDEFINED, // Y
-		width*scale,
-		height*scale,
+		WindowWidth,
+		WindowHeight,
 		sdl.WINDOW_SHOWN,
 	)
 	if err != nil {
@@ -43,9 +45,7 @@ func ensureStarted() error {
 		return err
 	}
 
-	if err = renderer.SetScale(scale, scale); err != nil {
-		return err
-	}
+	draw := Draw{renderer}
 
 	go func() {
 		const TargetFrameRate = 20
@@ -58,7 +58,8 @@ func ensureStarted() error {
 				handleEvent(e)
 			}
 
-			display.Render(renderer)
+			keyboard.Render(draw)
+			display.Render(draw)
 			renderer.Present()
 
 			loopTicks := uint32(sdl.GetTicks64() - startTime)

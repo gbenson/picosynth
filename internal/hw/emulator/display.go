@@ -1,10 +1,6 @@
 package emulator
 
-import (
-	"sync"
-
-	"github.com/veandco/go-sdl2/sdl"
-)
+import "sync"
 
 type Display struct {
 	mu     sync.Mutex
@@ -24,25 +20,34 @@ func (d *Display) SetBuffer(width, height int32, buf []byte) {
 	d.buf = buf
 }
 
-func (d *Display) Render(r *sdl.Renderer) {
+func (d *Display) Render(draw Draw) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	const x = 0 // XXX
-	const y = 0 // XXX
+	width := d.width
+	height := d.height
 
-	for p := int32(0); p < d.height/8; p++ {
-		x0 := p * d.width
+	margin := width / 8
+	pad := margin / 4
+	inset := margin + pad
+
+	// top-left corner
+	x := WindowWidth - width - inset
+	y := inset
+
+	draw.Box(0, 0, WindowWidth, inset*2+height, Gray(30))
+	draw.Box(x-pad, y-pad, width+2*pad, height+2*pad, Black)
+
+	for p := int32(0); p < height/8; p++ {
+		x0 := p * width
 		y0 := p * 8
-		for i := int32(0); i < d.width; i++ {
+		for i := int32(0); i < width; i++ {
 			vv := d.buf[x0+i]
 			for j := range int32(8) {
-				var v uint8
-				if vv&(1<<j) != 0 {
-					v = 255
+				if vv&(1<<j) == 0 {
+					continue
 				}
-				r.SetDrawColor(v, v, v, 255)
-				r.DrawPoint(x+i, y+y0+j)
+				draw.Box(x+i, y+y0+j, 1, 1, White)
 			}
 		}
 	}

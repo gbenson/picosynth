@@ -11,6 +11,7 @@ var keyboardLayout = [][]SoftKey{
 			Color:  Red,
 			KI:     7,
 			KO:     6,
+			Name:   "1",
 			Code:   sdl.K_1,
 		},
 		SoftKey{
@@ -18,6 +19,7 @@ var keyboardLayout = [][]SoftKey{
 			Color:  Purple,
 			KI:     5,
 			KO:     5,
+			Name:   "2",
 			Code:   sdl.K_2,
 		},
 		SoftKey{
@@ -25,6 +27,7 @@ var keyboardLayout = [][]SoftKey{
 			Color:  Yellow,
 			KI:     2,
 			KO:     5,
+			Name:   "3",
 			Code:   sdl.K_3,
 		},
 		SoftKey{
@@ -32,6 +35,7 @@ var keyboardLayout = [][]SoftKey{
 			Color:  Yellow,
 			KI:     3,
 			KO:     5,
+			Name:   "4",
 			Code:   sdl.K_4,
 		},
 		SoftKey{
@@ -39,6 +43,7 @@ var keyboardLayout = [][]SoftKey{
 			Color:  Yellow,
 			KI:     4,
 			KO:     5,
+			Name:   "5",
 			Code:   sdl.K_5,
 		},
 		SoftKey{
@@ -46,6 +51,7 @@ var keyboardLayout = [][]SoftKey{
 			Color:  Green,
 			KI:     0,
 			KO:     4,
+			Name:   "6",
 			Code:   sdl.K_6,
 		},
 		SoftKey{
@@ -53,6 +59,7 @@ var keyboardLayout = [][]SoftKey{
 			Color:  Green,
 			KI:     1,
 			KO:     4,
+			Name:   "7",
 			Code:   sdl.K_7,
 		},
 		SoftKey{
@@ -60,6 +67,7 @@ var keyboardLayout = [][]SoftKey{
 			Color:  Green,
 			KI:     2,
 			KO:     4,
+			Name:   "8",
 			Code:   sdl.K_8,
 		},
 		SoftKey{
@@ -67,6 +75,7 @@ var keyboardLayout = [][]SoftKey{
 			Color:  Green,
 			KI:     3,
 			KO:     4,
+			Name:   "9",
 			Code:   sdl.K_9,
 		},
 		SoftKey{
@@ -74,6 +83,7 @@ var keyboardLayout = [][]SoftKey{
 			Color:  Green,
 			KI:     4,
 			KO:     4,
+			Name:   "0",
 			Code:   sdl.K_0,
 		},
 		SoftKey{
@@ -83,6 +93,7 @@ var keyboardLayout = [][]SoftKey{
 			Wide:   true,
 			KI:     7,
 			KO:     4,
+			Name:   "BKSP",
 			Code:   sdl.K_BACKSPACE,
 		},
 	},
@@ -92,6 +103,7 @@ var keyboardLayout = [][]SoftKey{
 			Color: Black,
 			KI:    0,
 			KO:    1,
+			Name:  "W",
 			Code:  sdl.K_w,
 		},
 		SoftKey{
@@ -99,13 +111,16 @@ var keyboardLayout = [][]SoftKey{
 			Color: Black,
 			KI:    2,
 			KO:    1,
+			Name:  "E",
 			Code:  sdl.K_e,
 		},
 		SoftKey{
 			// F#4
 			Color: Black,
+			Offset:1,
 			KI:    5,
 			KO:    1,
+			Name:  "T",
 			Code:  sdl.K_t,
 		},
 		SoftKey{
@@ -113,6 +128,7 @@ var keyboardLayout = [][]SoftKey{
 			Color: Black,
 			KI:    7,
 			KO:    1,
+			Name:  "Y",
 			Code:  sdl.K_y,
 		},
 		SoftKey{
@@ -120,13 +136,16 @@ var keyboardLayout = [][]SoftKey{
 			Color: Black,
 			KI:    1,
 			KO:    2,
+			Name:  "U",
 			Code:  sdl.K_u,
 		},
 		SoftKey{
 			// C#5
 			Color: Black,
+			Offset:1,
 			KI:    4,
 			KO:    2,
+			Name:  "O",
 			Code:  sdl.K_o,
 		},
 		SoftKey{
@@ -134,14 +153,25 @@ var keyboardLayout = [][]SoftKey{
 			Color: Black,
 			KI:    6,
 			KO:    2,
+			Name:  "P",
 			Code:  sdl.K_p,
 		},
 		SoftKey{
 			// F#5
 			Color: Black,
+			Offset:1,
 			KI:    1,
 			KO:    3,
+			Name:  "]",
 			Code:  sdl.K_RIGHTBRACKET,
+		},
+		SoftKey{
+			// G#4
+			Color: Black,
+			KI:    3,
+			KO:    3,
+			Name:  "Ret",
+			Code:  sdl.K_RETURN,
 		},
 	},
 	[]SoftKey{
@@ -150,6 +180,7 @@ var keyboardLayout = [][]SoftKey{
 			Color: White,
 			KI:    7,
 			KO:    0,
+			Name:  "A",
 			Code:  sdl.K_a,
 		},
 		SoftKey{
@@ -157,6 +188,7 @@ var keyboardLayout = [][]SoftKey{
 			Color: White,
 			KI:    1,
 			KO:    1,
+			Name:  "S",
 			Code:  sdl.K_s,
 		},
 		SoftKey{
@@ -164,6 +196,7 @@ var keyboardLayout = [][]SoftKey{
 			Color: White,
 			KI:    3,
 			KO:    1,
+			Name:  "D",
 			Code:  sdl.K_d,
 		},
 		SoftKey{
@@ -171,6 +204,7 @@ var keyboardLayout = [][]SoftKey{
 			Color: White,
 			KI:    4,
 			KO:    1,
+			Name:  "F",
 			Code:  sdl.K_f,
 		},
 		SoftKey{
@@ -178,6 +212,7 @@ var keyboardLayout = [][]SoftKey{
 			Color: White,
 			KI:    6,
 			KO:    1,
+			Name:  "G",
 			Code:  sdl.K_g,
 		},
 		SoftKey{
@@ -185,6 +220,7 @@ var keyboardLayout = [][]SoftKey{
 			Color: White,
 			KI:    0,
 			KO:    2,
+			Name:  "H",
 			Code:  sdl.K_h,
 		},
 		SoftKey{
@@ -192,6 +228,7 @@ var keyboardLayout = [][]SoftKey{
 			Color: White,
 			KI:    2,
 			KO:    2,
+			Name:  "J",
 			Code:  sdl.K_j,
 		},
 		SoftKey{
@@ -199,6 +236,7 @@ var keyboardLayout = [][]SoftKey{
 			Color: White,
 			KI:    3,
 			KO:    2,
+			Name:  "K",
 			Code:  sdl.K_k,
 		},
 		SoftKey{
@@ -206,6 +244,7 @@ var keyboardLayout = [][]SoftKey{
 			Color: White,
 			KI:    5,
 			KO:    2,
+			Name:  "L",
 			Code:  sdl.K_l,
 		},
 		SoftKey{
@@ -213,6 +252,7 @@ var keyboardLayout = [][]SoftKey{
 			Color: White,
 			KI:    7,
 			KO:    2,
+			Name:  ";",
 			Code:  sdl.K_SEMICOLON,
 		},
 		SoftKey{
@@ -220,6 +260,7 @@ var keyboardLayout = [][]SoftKey{
 			Color: White,
 			KI:    0,
 			KO:    3,
+			Name:  "'",
 			Code:  sdl.K_QUOTE,
 		},
 		SoftKey{
@@ -227,6 +268,7 @@ var keyboardLayout = [][]SoftKey{
 			Color: White,
 			KI:    2,
 			KO:    3,
+			Name:  "#",
 			Code:  sdl.K_HASH,
 		},
 	},
@@ -236,6 +278,7 @@ var keyboardLayout = [][]SoftKey{
 			Color:  Orange,
 			KI:     6,
 			KO:     5,
+			Name:   "Z",
 			Code:   sdl.K_z,
 		},
 		SoftKey{
@@ -243,22 +286,24 @@ var keyboardLayout = [][]SoftKey{
 			Color:  Orange,
 			KI:     5,
 			KO:     4,
+			Name:   "X",
 			Code:   sdl.K_x,
 		},
 		SoftKey{
 			Legend: "-",
 			Color:  Purple,
-			Offset: 5,
 			KI:     7,
 			KO:     5,
-			Code:   sdl.K_COMMA,
+			Name:   "C",
+			Code:   sdl.K_c,
 		},
 		SoftKey{
 			Legend: "+",
 			Color:  Purple,
 			KI:     6,
 			KO:     4,
-			Code:   sdl.K_PERIOD,
+			Name:   "V",
+			Code:   sdl.K_v,
 		},
 	},
 }

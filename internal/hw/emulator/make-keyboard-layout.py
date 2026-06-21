@@ -26,6 +26,7 @@ A#4	Black	u	1	2
 C#5	Black	o	4	2
 D#5	Black	p	6	2
 F#5	Black	Right bracket	1	3
+G#4	Black	Return	3	3
 
 C4	White	a	7	0
 D4	White	s	1	1
@@ -42,8 +43,8 @@ G5	White	Hash	2	3
 
 -	Orange	z	6	5
 +	Orange	x	5	4
--	Purple	Comma	7	5
-+	Purple	Period	6	4"""
+-	Purple	c	7	5
++	Purple	v	6	4"""
 
 
 @dataclass
@@ -62,10 +63,15 @@ class SoftKey:
             case "K_BACKSPACE":
                 yield "Offset", 2
                 yield "Wide", "true"
-            case "K_COMMA":
-                yield "Offset", 5
+            case "K_t":
+                yield "Offset", 1
+            case "K_o":
+                yield "Offset", 1
+            case "K_RIGHTBRACKET":
+                yield "Offset", 1
         yield "KI", int(self._ki)
         yield "KO", int(self._ko)
+        yield "Name", f'"{self.key}"'
         yield "Code", f"sdl.{code}"
 
     @property
@@ -74,6 +80,21 @@ class SoftKey:
         if len(code) > 1:
             code = "".join(code.split()).upper()
         return f"K_{code}"
+
+    @property
+    def key(self):
+        key = self.code.removeprefix("K_")
+        if len(key) == 1:
+            return key.upper()
+        key = key.lower().title()
+        return {
+            "Backspace": "BKSP",
+            "Hash": "#",
+            "Quote": "'",
+            "Return": "Ret",
+            "Rightbracket": "]",
+            "Semicolon": ";",
+        }.get(key, key)
 
     @property
     def color(self) -> str:
