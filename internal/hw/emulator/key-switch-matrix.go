@@ -7,11 +7,11 @@ import (
 )
 
 type KeySwitchMatrix struct {
-	rows [5]bool
-	cols [4]bool
+	outStates [5]bool
+	inStates  [4]bool
 
-	rowPins []hw.Row
-	colPins []hw.Column
+	outputs []hw.OutputPin
+	inputs  []hw.InputPin
 
 	arp arpeggiator
 }
@@ -24,26 +24,26 @@ func OpenKeySwitchMatrix() (*KeySwitchMatrix, error) {
 		},
 	}
 
-	kb.rowPins = make([]hw.Row, len(kb.rows))
-	kb.colPins = make([]hw.Column, len(kb.cols))
+	kb.outputs = make([]hw.OutputPin, len(kb.outStates))
+	kb.inputs = make([]hw.InputPin, len(kb.inStates))
 
-	for i := range kb.rows {
-		kb.rowPins[i] = &rowPin{kb, i}
+	for i := range kb.outStates {
+		kb.outputs[i] = &outputPin{kb, i}
 	}
-	for j := range kb.cols {
-		kb.colPins[j] = &colPin{kb, j}
+	for j := range kb.inStates {
+		kb.inputs[j] = &inputPin{kb, j}
 	}
 	return kb, nil
 }
 
-// Rows implements [hw.KeySwitchMatrix].
-func (kb *KeySwitchMatrix) Rows() []hw.Row {
-	return kb.rowPins
+// Outputs implements [hw.KeySwitchMatrix].
+func (kb *KeySwitchMatrix) Outputs() []hw.OutputPin {
+	return kb.outputs
 }
 
-// Columns implements [hw.KeySwitchMatrix].
-func (kb *KeySwitchMatrix) Columns() []hw.Column {
-	return kb.colPins
+// Inputs implements [hw.KeySwitchMatrix].
+func (kb *KeySwitchMatrix) Inputs() []hw.InputPin {
+	return kb.inputs
 }
 
 type pin struct {
@@ -51,16 +51,16 @@ type pin struct {
 	num int
 }
 
-type rowPin pin
-type colPin pin
+type outputPin pin
+type inputPin pin
 
-func (p *rowPin) Set(level bool) {
-	p.kb.rows[p.num] = level
+func (p *outputPin) Set(level bool) {
+	p.kb.outStates[p.num] = level
 	p.kb.update()
 }
 
-func (p *colPin) Get() bool {
-	return p.kb.cols[p.num]
+func (p *inputPin) Get() bool {
+	return p.kb.inStates[p.num]
 }
 
 func (kb *KeySwitchMatrix) update() {
@@ -68,17 +68,17 @@ func (kb *KeySwitchMatrix) update() {
 	midinote := kb.arp.Note()      // 48..60
 	scancode := int(midinote) - 41 //  7..19
 
-	// clear columns
-	for j := range kb.cols {
-		kb.cols[j] = false
+	// clear input pins
+	for j := range kb.inStates {
+		kb.inStates[j] = false
 	}
 
-	row := scancode / len(kb.cols)
-	if !kb.rows[row] {
-		return // no columns high
+	output := scancode / len(kb.inStates)
+	if !kb.outStates[output] {
+		return // no input pins high
 	}
 
-	kb.cols[scancode%len(kb.cols)] = true
+	kb.inStates[scancode%len(kb.inStates)] = true
 }
 
 type arpeggiator struct {

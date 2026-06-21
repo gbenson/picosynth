@@ -9,14 +9,14 @@ type AudioDevice interface {
 }
 
 type KeySwitchMatrix interface {
-	Rows() []Row
-	Columns() []Column
+	Outputs() []OutputPin
+	Inputs() []InputPin
 }
 
-type Row interface {
+type OutputPin interface {
 	Set(bool)
 }
 
-type Column interface {
+type InputPin interface {
 	Get() bool
 }

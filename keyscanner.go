@@ -34,8 +34,8 @@ func (ks *KeyScanner) run() error {
 		return err
 	}
 
-	rows := kb.Rows()
-	cols := kb.Columns()
+	rows := kb.Outputs()
+	cols := kb.Inputs()
 
 	for _, rp := range rows {
 		rp.Set(false)

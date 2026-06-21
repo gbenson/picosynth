@@ -4,8 +4,8 @@ import "gbenson.net/go/picosynth/internal/hw"
 
 type (
 	KeySwitchMatrix = hw.KeySwitchMatrix
-	Row             = hw.Row
-	Column          = hw.Column
+	InputPin        = hw.InputPin
+	OutputPin       = hw.OutputPin
 )
 
 func Open() (KeySwitchMatrix, error) {
