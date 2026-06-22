@@ -81,10 +81,11 @@ var onceInitSDL = sync.OnceValue(func() error {
 func handleEvent(event sdl.Event) {
 	switch e := event.(type) {
 	case *sdl.KeyboardEvent:
+		key := e.Keysym
 		switch {
 		case e.Type != sdl.KEYUP:
-		case e.Keysym.Sym != sdl.K_q:
-		case (e.Keysym.Mod & sdl.KMOD_CTRL) == 0:
+		case key.Sym != sdl.K_q && key.Sym != sdl.K_c:
+		case (key.Mod & sdl.KMOD_CTRL) == 0:
 		default:
 			Exit(0)
 		}
