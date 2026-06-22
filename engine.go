@@ -108,13 +108,11 @@ func (ps *Engine) onButton(sc Scancode) {
 
 func (ps *Engine) setOctave(v int) {
 	ps.octave = max(MinOctave, min(MaxOctave, v))
-	println("octave", ps.octave)
 	ps.kt.Transpose = ps.octave * 12
 }
 
 func (ps *Engine) setVolume(v int) {
 	ps.volume = max(MinVolume, min(MaxVolume, v))
-	println("volume", ps.volume)
 }
 
 // Fill generates samples into the supplied buffer.
