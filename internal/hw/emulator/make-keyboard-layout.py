@@ -133,9 +133,11 @@ with open("keyboard-layout.go", "w") as fp:
             print("\t\tSoftKey{")
             if (is_note := keydef.is_note):
                 print(f"\t\t\t// {keydef.note}")
-            for attr, value in keydef.attrs():
+            attrs = dict(keydef.attrs())
+            has_offset = "Offset" in attrs
+            for attr, value in attrs.items():
                 line = f"\t\t\t{attr + ':':7} {value},"
-                if is_note:
+                if is_note and not has_offset:
                     line = line.replace(": ", ":")
                 print(line)
             print("\t\t},")

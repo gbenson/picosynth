@@ -116,12 +116,12 @@ var keyboardLayout = [][]SoftKey{
 		},
 		SoftKey{
 			// F#4
-			Color: Black,
-			Offset:1,
-			KI:    5,
-			KO:    1,
-			Name:  "T",
-			Code:  sdl.K_t,
+			Color:  Black,
+			Offset: 1,
+			KI:     5,
+			KO:     1,
+			Name:   "T",
+			Code:   sdl.K_t,
 		},
 		SoftKey{
 			// G#4
@@ -141,12 +141,12 @@ var keyboardLayout = [][]SoftKey{
 		},
 		SoftKey{
 			// C#5
-			Color: Black,
-			Offset:1,
-			KI:    4,
-			KO:    2,
-			Name:  "O",
-			Code:  sdl.K_o,
+			Color:  Black,
+			Offset: 1,
+			KI:     4,
+			KO:     2,
+			Name:   "O",
+			Code:   sdl.K_o,
 		},
 		SoftKey{
 			// D#5
@@ -158,12 +158,12 @@ var keyboardLayout = [][]SoftKey{
 		},
 		SoftKey{
 			// F#5
-			Color: Black,
-			Offset:1,
-			KI:    1,
-			KO:    3,
-			Name:  "]",
-			Code:  sdl.K_RIGHTBRACKET,
+			Color:  Black,
+			Offset: 1,
+			KI:     1,
+			KO:     3,
+			Name:   "]",
+			Code:   sdl.K_RIGHTBRACKET,
 		},
 		SoftKey{
 			// G#4
