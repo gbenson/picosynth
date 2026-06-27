@@ -40,13 +40,8 @@ func Render(buf []byte, s string) (n int) {
 // kern returns the inter-glyph spacing between two runes.
 func kern(r0, r1 rune) int {
 	f := microfont.Face04B08
-	const spaceWidth = 4
 	if r0 == ' ' {
-		if r1 == '&' {
-			return spaceWidth - 1
-		} else {
-			return spaceWidth
-		}
+		return 2
 	}
 	return f.Kern(r0, r1).Floor() + 1
 }

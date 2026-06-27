@@ -37,6 +37,7 @@ type Engine struct {
 	Memory Memory
 
 	display display.Display
+	editor  *MemoryEditor
 
 	ks KeyScanner
 	kt KeyTracker
@@ -53,6 +54,8 @@ type Engine struct {
 }
 
 func (ps *Engine) init() {
+	ps.editor = &MemoryEditor{memory: &ps.Memory, display: &ps.display}
+
 	ps.kt.init()
 
 	ps.setOctave(InitialOctave)
@@ -197,7 +200,9 @@ func (ps *Engine) onButton(sc Scancode) {
 	case ButtonTempoDown:
 		ps.setOctave(ps.octave - 1)
 	default:
-		println("button", sc, "pressed")
+		if h := ps.editor; h != nil {
+			h.onButton(sc)
+		}
 	}
 }
 

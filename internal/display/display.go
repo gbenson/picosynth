@@ -102,13 +102,26 @@ func (d *Display) run() error {
 	return nil
 }
 
+// Clear clears the buffer.  Clear is asynchronous, requiring a call
+// to [Sync] to have visible effect.
+func (d *Display) Clear() {
+	d.Do(ClearCommand)
+}
+
+// Line draws a line from x1, y1 to x2, y2.  Line is asynchronous,
+// requiring a call to [Sync] to have visible effect.
+func (d *Display) Line(x1, y1, x2, y2 int32) {
+	d.Do(NewLineCommand(x1, y1, x2, y2))
+}
+
 // Sleeping reports whether the display is sleeping.
 func (d *Display) Sleeping() bool {
 	return d.blanked.Load()
 }
 
 // Sleep turns off the display. Sending any other command afterward
-// turns it back on again.
+// turns it back on again.  Sleep has immediate effect, it does not
+// require a call to [Sync].
 func (d *Display) Sleep() {
 	d.Do(SleepCommand)
 }
@@ -119,7 +132,13 @@ func (d *Display) KeepAlive() {
 	d.Do(KeepAliveCommand)
 }
 
+// Sync updates the display with any changes since its last call.
+func (d *Display) Sync() {
+	d.Do(SyncCommand)
+}
+
 // Text displays the given text, expanded to fill the entire screen.
+// Text has immediate effect, it does not require a call to [Sync].
 func (d *Display) Text(s string) {
 	d.Do(NewTextCommand(s))
 }
@@ -138,6 +157,13 @@ func (d *Display) Serial() int32 {
 // this method.
 func (d *Display) TextIfSerial(n int32, s string) {
 	d.Do(NewTextIfSerialCommand(n, s))
+}
+
+// TextAt displays the given text with its top left corner at x, y,
+// roughly h pixels high. TextAt is asynchronous, requiring a call
+// to [Sync] to have visible effect.
+func (d *Display) TextAt(x, y, h int32, s string) {
+	d.Do(NewTextAtCommand(x, y, h, s))
 }
 
 // Do issues a command to the display.
@@ -166,16 +192,74 @@ func (d *Display) do(cmd Command) error {
 	// sequences aren't broken by playing notes or changing the volume
 	// or tempo.
 	serial := d.serial.Add(1) - 1
-	if cmd[0] == '\x1B' { // showIfSerial
-		// XXX replace this mess with [Command.Decode]
+
+	// XXX replace this mess with [Command.Decode] or something...
+	switch cmd[0] {
+	case ClearCommand[0]:
+		d.clear()
+		return nil
+
+	case SyncCommand[0]:
+		return d.sync()
+
+	case '\x01': // Line
 		runes := []rune(cmd)
-		if int32(runes[1]) != serial {
+		d.line(
+			r2i(runes[1]),
+			r2i(runes[2]),
+			r2i(runes[3]),
+			r2i(runes[4]),
+		)
+		return nil
+	case '\x02': // TextAt
+		runes := []rune(cmd)
+		d.renderTextAt(
+			r2i(runes[1]),
+			r2i(runes[2]),
+			r2i(runes[3]),
+			string(runes[4:]),
+		)
+		return nil
+
+	case '\x1B': // TextIfSerial
+		runes := []rune(cmd)
+		if r2i(runes[1]) != serial {
 			return nil
 		}
 		cmd = Command(runes[2:]) // fall through into regular show command
 	}
 
 	d.renderFullscreen(string(cmd))
+	return d.sync()
+}
+
+// clear clears the buffer.
+func (d *Display) clear() {
+	dst := d.buf
+	for i := range dst {
+		dst[i] = 0
+	}
+}
+
+// Line draws a line from x1, y1 to x2, y2.
+func (d *Display) line(x1, y1, x2, y2 int32) {
+	if y2 != y1 {
+		println("line", x1, y1, x2, y2, "not implemented")
+		return
+	}
+
+	// horizontal line
+	dst := d.buf
+	mask := uint8(1 << (y1 & 7))
+	pageStart := (y1 / 8) * Width
+	limit := pageStart + x2
+	for i := pageStart + x1; i < limit; i++ {
+		dst[i] |= mask
+	}
+}
+
+// sync updates the display with any changes since its last call.
+func (d *Display) sync() error {
 	if err := d.device.SetBuffer(d.buf); err != nil {
 		return err
 	}
@@ -226,7 +310,7 @@ func (d *Display) renderFullscreen(s string) {
 	src = dst
 	dst = d.buf
 	for i, v := range src {
-		u := verticals[v]
+		u := verticals32[v]
 		dst[i] = uint8(u & 255)
 
 		u >>= 8
@@ -243,10 +327,50 @@ func (d *Display) renderFullscreen(s string) {
 	}
 }
 
-var verticals [32]uint32
+// renderTextAt renders the given text, with its top left corner at
+// x, y, roughly h pixels high.
+func (d *Display) renderTextAt(x, y, h int32, s string) {
+	dst := d.buf[(y/8)*Width+x:]
+	width := microfont.Render(dst, s)
+	if h < 9 {
+		for i := range width {
+			dst[i] <<= 1
+		}
+		return
+	}
+
+	for sx := width - 1; sx >= 0; sx-- {
+		dx := sx * 2
+		u := verticals16[dst[sx]]
+		v := uint8(u & 255)
+		dst[dx] = v
+		dst[dx+1] = v
+
+		u >>= 8
+		v = uint8(u & 255)
+		dx += Width
+		dst[dx] = v
+		dst[dx+1] = v
+	}
+}
+
+var verticals16 [32]uint32
+var verticals32 [32]uint32
 
 func init() {
-	for i := range verticals {
+	for i := range verticals16 {
+		v := i
+		var result uint32
+		for _ = range 6 {
+			if (v & 32) != 0 {
+				result |= 0x03
+			}
+			v <<= 1
+			result <<= 2
+		}
+		verticals16[i] = result
+	}
+	for i := range verticals32 {
 		v := i
 		var result uint32
 		for _ = range 6 {
@@ -256,6 +380,6 @@ func init() {
 			}
 			v <<= 1
 		}
-		verticals[i] = result
+		verticals32[i] = result
 	}
 }

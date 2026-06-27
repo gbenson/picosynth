@@ -3,8 +3,10 @@ package display
 type Command string
 
 const (
-	SleepCommand     Command = "\x04"
-	KeepAliveCommand Command = "\x06"
+	ClearCommand     Command = "\x0c" // clear the buffer
+	SleepCommand     Command = "\x04" // power down the display
+	SyncCommand      Command = "\x0a" // push the buffer to the display
+	KeepAliveCommand Command = "\x06" // wake display/inhibit screensaver
 )
 
 // NewTextCommand creates a command to display the given text,
@@ -20,19 +22,16 @@ func NewTextCommand(s string) Command {
 // expanded to fill the entire screen, but only [Display.serial]
 // matches the supplied value at the time the command is received.
 func NewTextIfSerialCommand(n int32, s string) Command {
-	return Command("\x1B" + string(rune(n)) + s)
+	return Command("\x1B" + i2s(n) + s)
 }
 
-// future commands:
-//  - Clear() - wipe the buffer
-//  - TextAt(x, y int, s string) - render unexpanded text
-//      (maybe with y limited to page boundaries, idk)
-//  - Sync()/Update() - push the buffer to the display.
-//      (if added, update Text() docstring to detail that
-//      Text() includes a Sync(), that's only there for if
-//      you're constructing a menu/QR code/whatever.
-//
-// these can be packed into type Command as strings whose
-// first character is some special character ('\x1B'?) that
-// [Display.do] can detect, or maybe have a [Command.Decode]
-// method that takes any command apart (including Text)
+// NewTextAtCommand creates a command to display the given text with
+// its top left corner at x, y, roughly h pixels high.
+func NewTextAtCommand(x, y, h int32, s string) Command {
+	return Command("\x02" + i2s(x) + i2s(y) + i2s(h) + s)
+}
+
+// NewLineCommand creates a command to draw a line from x1, y1 to x2, y2.
+func NewLineCommand(x1, y1, x2, y2 int32) Command {
+	return Command("\x01" + i2s(x1) + i2s(y1) + i2s(x2) + i2s(y2))
+}
