@@ -19,7 +19,7 @@ type Wavetable [WavetableSize]Signal
 
 // Get returns the amplitude of the waveform at phase x.
 func (wt *Wavetable) Get(x Signal) Signal {
-	i := int(uint32(x)) >> wtIndexShift
+	i := int(uint32(x) >> wtIndexShift)
 	j := (i + 1) & wtIndexMask
 
 	yi := wt[i]
