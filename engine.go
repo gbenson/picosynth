@@ -91,30 +91,6 @@ func (ps *Engine) Run() error {
 	return wm.Wait()
 }
 
-func (ps *Engine) onButton(sc Scancode) {
-	switch sc {
-	case ButtonVolumeUp:
-		ps.setVolume(ps.volume + 1)
-	case ButtonVolumeDown:
-		ps.setVolume(ps.volume - 1)
-	case ButtonTempoUp:
-		ps.setOctave(ps.octave + 1)
-	case ButtonTempoDown:
-		ps.setOctave(ps.octave - 1)
-	default:
-		println("button", sc, "pressed")
-	}
-}
-
-func (ps *Engine) setOctave(v int) {
-	ps.octave = max(MinOctave, min(MaxOctave, v))
-	ps.kt.Transpose = ps.octave * 12
-}
-
-func (ps *Engine) setVolume(v int) {
-	ps.volume = max(MinVolume, min(MaxVolume, v))
-}
-
 // Fill generates samples into the supplied buffer.
 func (ps *Engine) Fill(buf []int16) error {
 	for e := ps.ks.Poll(); e != NoEvent; e = ps.ks.Poll() {
@@ -155,4 +131,28 @@ func (ps *Engine) Fill(buf []int16) error {
 	}
 
 	return nil
+}
+
+func (ps *Engine) onButton(sc Scancode) {
+	switch sc {
+	case ButtonVolumeUp:
+		ps.setVolume(ps.volume + 1)
+	case ButtonVolumeDown:
+		ps.setVolume(ps.volume - 1)
+	case ButtonTempoUp:
+		ps.setOctave(ps.octave + 1)
+	case ButtonTempoDown:
+		ps.setOctave(ps.octave - 1)
+	default:
+		println("button", sc, "pressed")
+	}
+}
+
+func (ps *Engine) setOctave(v int) {
+	ps.octave = max(MinOctave, min(MaxOctave, v))
+	ps.kt.Transpose = ps.octave * 12
+}
+
+func (ps *Engine) setVolume(v int) {
+	ps.volume = max(MinVolume, min(MaxVolume, v))
 }
