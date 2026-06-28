@@ -34,6 +34,8 @@ const (
 )
 
 type Engine struct {
+	Memory Memory
+
 	display display.Display
 
 	ks KeyScanner
@@ -53,14 +55,33 @@ type Engine struct {
 func (ps *Engine) init() {
 	ps.kt.init()
 
+	ps.setOctave(InitialOctave)
+	ps.setVolume(InitialVolume)
+
+	ps.Reset()
+}
+
+// Reset restores all synthesis parameters to their initial states.
+func (ps *Engine) Reset() {
+	ps.Memory.Matrix().Reset()
+
+	// Connect each audio oscillator's pitch input to the voice pitch.
+	ps.Connect(ModulatedOsc1Pitch, VoicePitch, MaxSignal)
+	ps.Connect(ModulatedOsc2Pitch, VoicePitch, MaxSignal)
+
+	// XXX above is general reset, below is a specific patch
+	// XXX (this also sets some things that aren't in the matrix... yet?)
 	ps.lfo1.Frequency = 10 * Hz
 	ps.lfo1.Shaper = SineShaper
+	ps.Connect(ModulatedOsc1Pitch, LFO1Output, MaxSignal>>9)
 
 	ps.osc1.Shaper = TriSawShaper
 	ps.osc1.Shape = MaxSignal // rising saw
+}
 
-	ps.setOctave(InitialOctave)
-	ps.setVolume(InitialVolume)
+// Connect adds or updates a connection in the modulation matrix.
+func (ps *Engine) Connect(dst, src int, gain Signal) {
+	ps.Memory.Matrix().Connect(dst, src, gain)
 }
 
 // Run is the main entry point of the firmware.
@@ -111,13 +132,16 @@ func (ps *Engine) Fill(buf []int16) error {
 	}
 
 	ps.kt.Step()
-	pitch := ps.kt.Note.Pitch()
+	ps.storePitch(VoicePitch, ps.kt.Note.Pitch())
 	ps.ampEnv.Gate = ps.kt.Gate
 
 	for i := range buf {
-		ps.lfo1.Step()
+		ps.Memory.Step()
 
-		osc1Pitch := Pitch(Signal(pitch) + (ps.lfo1.Output >> 9))
+		ps.lfo1.Step()
+		ps.store(LFO1Output, ps.lfo1.Output)
+
+		osc1Pitch := ps.loadPitch(ModulatedOsc1Pitch)
 		ps.osc1.Frequency = osc1Pitch.Frequency()
 		ps.osc1.Step()
 
@@ -131,6 +155,30 @@ func (ps *Engine) Fill(buf []int16) error {
 	}
 
 	return nil
+}
+
+// load returns the contents of register n as a Signal.
+func (ps *Engine) load(n int) Signal {
+	r := ps.Memory.Register(n)
+	return Signal(r.Load())
+}
+
+// store replaces the contents of register n with v.
+func (ps *Engine) store(n int, v Signal) {
+	r := ps.Memory.Register(n)
+	r.Store(uint32(v))
+}
+
+// loadPitch returns the contents of register n as a Pitch.
+func (ps *Engine) loadPitch(n int) Pitch {
+	r := ps.Memory.Register(n)
+	return Pitch(r.Load())
+}
+
+// storePitch replaces the contents of register n with p.
+func (ps *Engine) storePitch(n int, p Pitch) {
+	r := ps.Memory.Register(n)
+	r.Store(uint32(p))
 }
 
 func (ps *Engine) onButton(sc Scancode) {

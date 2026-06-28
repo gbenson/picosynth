@@ -1,6 +1,7 @@
 package picosynth
 
 import (
+	"math"
 	"testing"
 
 	"gotest.tools/v3/assert"
@@ -41,19 +42,24 @@ func TestEditable(t *testing.T) {
 }
 
 func TestMatrixOutputCalculation(t *testing.T) {
-	var m Memory
-	m.Matrix().Reset()
+	var ps Engine
+	ps.init()
+	m := &ps.Memory
 
 	out := m.Register(ModulatedLFO2Rate) // value used by LFO2 for this step
 	in1 := m.Register(LFO2Rate)          // bias value (from LFO2 rate knob)
 	in2 := m.Register(VoicePitch)
 	rc2 := m.Register(LFO2RateSrc2) // cell 2 of LFORate matrix row
+	op1 := m.Register(ModulatedOsc1Pitch)
+	op2 := m.Register(ModulatedOsc2Pitch)
 
 	for _ = range 2 {
 		assert.Equal(t, in1.Load(), uint32(0))
 		assert.Equal(t, in2.Load(), uint32(0))
 		assert.Equal(t, out.Load(), uint32(0))
 		assert.Equal(t, rc2.Load(), uint32(0))
+		assert.Equal(t, op1.Load(), uint32(0))
+		assert.Equal(t, op2.Load(), uint32(0))
 
 		m.Step()
 	}
@@ -70,6 +76,7 @@ func TestMatrixOutputCalculation(t *testing.T) {
 
 	in1.Store(uint32(120 * BPM))
 	in2.Store(uint32(noteC4.Pitch()))
+	wantNote := float64(noteC4)
 	assert.Equal(t, in2.Load(), uint32(0x50000000))
 	assert.Equal(t, out.Load(), uint32(0x00031244)) // not updated
 	m.Step()
@@ -81,4 +88,21 @@ func TestMatrixOutputCalculation(t *testing.T) {
 	assert.Equal(t, out.Load(), uint32(0x0002bae7)) // not updated
 	m.Step()
 	assert.Equal(t, out.Load(), uint32(0x0b6370a7)) // updated now
+
+	// bonus: check ModulatedOsc[12]Pitch are following VoicePitch
+	assert.Equal(t, op1.Load(), uint32(0x4fffff60))
+	assert.Equal(t, op2.Load(), uint32(0x4fffff60))
+
+	// side note: how close is 0x4fffff60 to 0x50000000?
+	wantPitch := Pitch(in2.Load())
+	gotPitch := Pitch(op1.Load())
+	assert.Equal(t, wantPitch, Pitch(0x50000000))
+	assert.Equal(t, gotPitch, Pitch(0x4fffff60))
+
+	gotNote := noteFromFrequency(gotPitch.Frequency())
+
+	t.Logf("want: MIDI %v, got MIDI %v", wantNote, gotNote)
+
+	// Two cents is the standard we validate Pitch.Frequency() against.
+	assert.Check(t, math.Abs(gotNote-wantNote) < 0.02)
 }
