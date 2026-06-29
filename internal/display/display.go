@@ -93,10 +93,21 @@ func (d *Display) run() error {
 		d.TextIfSerial(n+4, "")
 	}()
 
+	maxErrors := 20
 	for cmd := range cmds {
-		if err := d.do(cmd); err != nil {
-			return err
+		err := d.do(cmd)
+		if err == nil || maxErrors < 1 {
+			continue
 		}
+
+		const prefix = "Display.do:"
+		println(prefix, err)
+		maxErrors--
+		if maxErrors > 0 {
+			continue
+		}
+
+		println(prefix, "maximum number of errors reached")
 	}
 
 	return nil
