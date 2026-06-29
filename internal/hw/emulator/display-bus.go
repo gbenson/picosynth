@@ -41,7 +41,14 @@ func (d *DisplayBus) onCommand(buf []byte) error {
 	if len(buf) != 1 {
 		return errors.ErrUnsupported
 	}
-	d.cmds = append(d.cmds, buf[0])
+	cmd := buf[0]
+	switch cmd {
+	case ssd1306.DISPLAYOFF:
+		display.Sleep()
+	case ssd1306.DISPLAYON:
+		display.Wake()
+	}
+	d.cmds = append(d.cmds, cmd)
 	return nil
 }
 

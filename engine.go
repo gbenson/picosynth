@@ -114,6 +114,7 @@ func (ps *Engine) Run() error {
 
 // Fill generates samples into the supplied buffer.
 func (ps *Engine) Fill(buf []int16) error {
+	var activity bool
 	for e := ps.ks.Poll(); e != NoEvent; e = ps.ks.Poll() {
 		sc := e.Scancode()
 		if note := sc.Note(); note.IsValid() {
@@ -121,6 +122,10 @@ func (ps *Engine) Fill(buf []int16) error {
 		} else if !e.Down() {
 			ps.onButton(sc)
 		}
+		activity = true
+	}
+	if activity {
+		ps.display.KeepAlive()
 	}
 
 	// Final shift converts 32-bit to 16 and applies ps.volume.

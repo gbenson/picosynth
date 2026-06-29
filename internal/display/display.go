@@ -16,16 +16,20 @@ const (
 	Address = ssd1306.Address_128_32
 
 	bufsiz = Width * Height / 8
+
+	BlankTime = 30 * time.Second
 )
 
 type Display struct {
-	bus    drivers.I2C
-	device *ssd1306.Device
-	buffer [bufsiz]byte
-	buf    []byte
-	page2  []byte // scratch space
-	cmds   chan<- Command
-	serial atomic.Int32
+	bus     drivers.I2C
+	device  *ssd1306.Device
+	buffer  [bufsiz]byte
+	buf     []byte
+	page2   []byte // scratch space
+	cmds    chan<- Command
+	serial  atomic.Int32
+	blanker *time.Timer
+	blanked atomic.Bool
 }
 
 // Name implements [worker].
@@ -74,6 +78,8 @@ func (d *Display) run() error {
 		Address: Address,
 	})
 
+	d.blanker = time.AfterFunc(BlankTime, d.Sleep)
+
 	go func() {
 		n := d.Serial()
 		d.TextIfSerial(n+0, "hello")
@@ -94,6 +100,23 @@ func (d *Display) run() error {
 	}
 
 	return nil
+}
+
+// Sleeping reports whether the display is sleeping.
+func (d *Display) Sleeping() bool {
+	return d.blanked.Load()
+}
+
+// Sleep turns off the display. Sending any other command afterward
+// turns it back on again.
+func (d *Display) Sleep() {
+	d.Do(SleepCommand)
+}
+
+// KeepAlive unblanks the screen as necessary, then resets the screensaver
+// timer so the display won't sleep again for the maximum interval.
+func (d *Display) KeepAlive() {
+	d.Do(KeepAliveCommand)
 }
 
 // Text displays the given text, expanded to fill the entire screen.
@@ -124,6 +147,24 @@ func (d *Display) Do(cmd Command) {
 
 // do executes received commands.
 func (d *Display) do(cmd Command) error {
+	if cmd == SleepCommand {
+		if !d.blanked.Swap(true) {
+			d.device.Command(ssd1306.DISPLAYOFF)
+		}
+		return nil
+	} else if d.blanked.Swap(false) {
+		d.device.Command(ssd1306.DISPLAYON)
+	}
+	d.blanker.Reset(BlankTime)
+	if cmd == KeepAliveCommand {
+		return nil
+	}
+
+	// SleepCommand and KeepAliveCommand not incrementing d.serial is
+	// intentional, the former so sequences can have gaps longer than
+	// BlankTime without being cut off every time, and the latter so
+	// sequences aren't broken by playing notes or changing the volume
+	// or tempo.
 	serial := d.serial.Add(1) - 1
 	if cmd[0] == '\x1B' { // showIfSerial
 		// XXX replace this mess with [Command.Decode]

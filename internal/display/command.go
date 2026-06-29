@@ -2,6 +2,11 @@ package display
 
 type Command string
 
+const (
+	SleepCommand     Command = "\x04"
+	KeepAliveCommand Command = "\x06"
+)
+
 // NewTextCommand creates a command to display the given text,
 // expanded to fill the entire screen.
 func NewTextCommand(s string) Command {
