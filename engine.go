@@ -49,6 +49,7 @@ type Engine struct {
 	ampEnv Envelope
 
 	osc1 BasicOscillator
+	osc2 BasicOscillator
 
 	volume int
 }
@@ -80,6 +81,11 @@ func (ps *Engine) Reset() {
 
 	ps.osc1.Shaper = TriSawShaper
 	ps.osc1.Shape = MaxSignal // rising saw
+	ps.store(Osc1Level, MaxSignal)
+
+	ps.osc2.Shaper = SineShaper
+	ps.osc2.Shape = 0                      // zero phase shift
+	ps.store(Osc2Pitch, -1*Signal(Octave)) // XXX make pitch signed!
 }
 
 // Connect adds or updates a connection in the modulation matrix.
@@ -153,7 +159,12 @@ func (ps *Engine) Fill(buf []int16) error {
 		ps.osc1.Frequency = osc1Pitch.Frequency()
 		ps.osc1.Step()
 
-		output := ps.osc1.Output
+		osc2Pitch := ps.loadPitch(ModulatedOsc2Pitch)
+		ps.osc2.Frequency = osc2Pitch.Frequency()
+		ps.osc2.Step()
+
+		output := ps.osc1.Output.Mul(ps.load(Osc1Level))
+		output += ps.osc2.Output.Mul(ps.load(Osc2Level))
 
 		ps.ampEnv.Step()
 		output = output.Mul(ps.ampEnv.Level)
