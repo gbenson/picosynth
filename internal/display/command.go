@@ -1,37 +1,35 @@
 package display
 
-type Command string
+type Opcode int32
 
 const (
-	ClearCommand     Command = "\x0c" // clear the buffer
-	SleepCommand     Command = "\x04" // power down the display
-	SyncCommand      Command = "\x0a" // push the buffer to the display
-	KeepAliveCommand Command = "\x06" // wake display/inhibit screensaver
+	// Zero-operand instructions have negative opcodes.
+	// For these instructions the value transmitted over
+	// the channel is the opcode itself.
+
+	CmdClear Opcode = -1 - iota // clear the buffer
+	CmdSleep                    // power down the display
+	CmdSync                     // push the buffer to the display
+	CmdWake                     // wake display/inhibit screensaver
+
+	// Instructions with operands have positive opcodes.
+	// For these instructions the value transmitted over
+	// the channel is an index into the instruction buffer,
+	// with the opcode stored in the referenced entry.
+
+	CmdBox  Opcode = iota + 1 // draw a filled box
+	CmdText                   // render arbitrary text
+	CmdHex                    // render a hexadecimal number
 )
 
-// NewTextCommand creates a command to display the given text,
-// expanded to fill the entire screen.
-func NewTextCommand(s string) Command {
-	// This command is the expected use-case for the display, for
-	// real-time feedback while playing.  It should operate without
-	// allocation.
-	return Command(s)
+type Instruction struct {
+	Opcode     Opcode // 4 bytes
+	IfSerial   int32  // 4 bytes
+	X, Y, W, H int32  // 16 bytes
+	Int32      string // 4 bytes
+	String     string // 4 bytes
 }
 
-// NewTextIfSerialCommand creates a command to display the given text,
-// expanded to fill the entire screen, but only [Display.serial]
-// matches the supplied value at the time the command is received.
-func NewTextIfSerialCommand(n int32, s string) Command {
-	return Command("\x1B" + i2s(n) + s)
-}
-
-// NewTextAtCommand creates a command to display the given text with
-// its top left corner at x, y, roughly h pixels high.
-func NewTextAtCommand(x, y, h int32, s string) Command {
-	return Command("\x02" + i2s(x) + i2s(y) + i2s(h) + s)
-}
-
-// NewLineCommand creates a command to draw a line from x1, y1 to x2, y2.
-func NewLineCommand(x1, y1, x2, y2 int32) Command {
-	return Command("\x01" + i2s(x1) + i2s(y1) + i2s(x2) + i2s(y2))
-}
+// A command is a zero-argument opcode, if negative, or
+// an index into a display's instruction buffer otherwise.
+type command int32

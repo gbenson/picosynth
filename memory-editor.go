@@ -158,9 +158,7 @@ func (me *MemoryEditor) redraw() {
 	}
 
 	if i := int32(me.selected); i >= 0 {
-		x := 35 * i
-		d.Line(x+1, 30, x+22, 30)
-		d.Line(x+1, 31, x+22, 31)
+		d.Box(35*i+1, 30, 22, 2)
 	}
 
 	d.Sync()
