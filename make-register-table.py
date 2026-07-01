@@ -45,7 +45,7 @@ inputs_feedbacks = {
     # NoiseOutput
     # RingModOutput
     # S&H output??"
-    # FilterOutput
+    # Filt1Output
 }
 
 matrix_outputs = []
@@ -55,7 +55,8 @@ for i in range(1, 5):
         matrix_outputs.append(f"Osc{i}{dst}")
 
 # 4×2 filters = 8
-matrix_outputs.extend(("FilterCutoff", "FilterResonance"))
+inputs_feedbacks[len(matrix_outputs)] = "Filt1Mode"
+matrix_outputs.extend(("Filt1Cutoff", "Filt1Resonance"))
 matrix_outputs.extend([""] * 6)
 
 # 8 empty slots (other input things.. noise, S&H, pre-filter effects (drive)
@@ -101,8 +102,8 @@ sections = {
 }
 
 truncations = {
-    "Cutoff": " Cut",
-    "Resonance": " Res",
+    "Cutoff": "Cut",
+    "Resonance": "Res",
     "Attack": "Atk",
     "Sustain": "Sust",
     "Release": "Rel",
@@ -116,8 +117,11 @@ def short_name_for(name):
         name = name.replace("Decay", "Dec")
     for a, b in truncations.items():
         name = name.replace(a, b)
-    if name[3].isdigit():
-        name = f"{name[:4]} {name[4:]}"
+    for i in range(3, 5):
+        if not name[i].isdigit():
+            continue
+        name = f"{name[:i+1]} {name[i+1:]}"
+        break
     return name
 
 command = " ".join(["python"] + sys.argv)

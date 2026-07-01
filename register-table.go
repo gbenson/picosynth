@@ -21,7 +21,7 @@ const (
 	register0E
 	register0F
 
-	register10
+	Filt1Mode
 	register11
 	register12
 	register13
@@ -90,8 +90,8 @@ const (
 	register4E
 	register4F
 
-	FilterCutoff
-	FilterResonance
+	Filt1Cutoff
+	Filt1Resonance
 	register52
 	register53
 	register54
@@ -228,8 +228,8 @@ const (
 	registerCE
 	registerCF
 
-	ModulatedFilterCutoff
-	ModulatedFilterResonance
+	ModulatedFilt1Cutoff
+	ModulatedFilt1Resonance
 	registerD2
 	registerD3
 	registerD4
@@ -348,14 +348,14 @@ const (
 	matrix0FSrc2
 	matrix0FSrc3
 
-	FilterCutoffSrc0
-	FilterCutoffSrc1
-	FilterCutoffSrc2
-	FilterCutoffSrc3
-	FilterResonanceSrc0
-	FilterResonanceSrc1
-	FilterResonanceSrc2
-	FilterResonanceSrc3
+	Filt1CutoffSrc0
+	Filt1CutoffSrc1
+	Filt1CutoffSrc2
+	Filt1CutoffSrc3
+	Filt1ResonanceSrc0
+	Filt1ResonanceSrc1
+	Filt1ResonanceSrc2
+	Filt1ResonanceSrc3
 	matrix12Src0
 	matrix12Src1
 	matrix12Src2
@@ -576,7 +576,7 @@ var RegisterNames = []string{
 	"",
 
 	// 0x10..0x1F
-	"",
+	"Filt1 Mode",
 	"",
 	"",
 	"",
@@ -648,8 +648,8 @@ var RegisterNames = []string{
 	"",
 
 	// 0x50..0x5F
-	"Filter Cut",
-	"Filter Res",
+	"Filt1 Cut",
+	"Filt1 Res",
 	"",
 	"",
 	"",
@@ -792,8 +792,8 @@ var RegisterNames = []string{
 	"",
 
 	// 0xD0..0xDF
-	"ModulatedFilter Cut",
-	"ModulatedFilter Res",
+	"ModulatedFilt1Cut",
+	"ModulatedFilt1Res",
 	"",
 	"",
 	"",
@@ -918,14 +918,14 @@ var RegisterNames = []string{
 	"",
 
 	// 0x140..0x14F
-	"Filter Cut",
-	"Filter Cut",
-	"Filter Cut",
-	"Filter Cut",
-	"Filter Res",
-	"Filter Res",
-	"Filter Res",
-	"Filter Res",
+	"Filt1 Cut",
+	"Filt1 Cut",
+	"Filt1 Cut",
+	"Filt1 Cut",
+	"Filt1 Res",
+	"Filt1 Res",
+	"Filt1 Res",
+	"Filt1 Res",
 	"",
 	"",
 	"",

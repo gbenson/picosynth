@@ -51,6 +51,8 @@ type Engine struct {
 	osc1 BasicOscillator
 	osc2 BasicOscillator
 
+	filt1 ChamberlinFilter
+
 	volume int
 }
 
@@ -86,6 +88,8 @@ func (ps *Engine) Reset() {
 	ps.osc2.Shaper = SineShaper
 	ps.osc2.Shape = 0                      // zero phase shift
 	ps.store(Osc2Pitch, -1*Signal(Octave)) // XXX make pitch signed!
+
+	ps.storeFilterMode(Filt1Mode, FilterChamberlinLowPass)
 }
 
 // Connect adds or updates a connection in the modulation matrix.
@@ -163,8 +167,29 @@ func (ps *Engine) Fill(buf []int16) error {
 		ps.osc2.Frequency = osc2Pitch.Frequency()
 		ps.osc2.Step()
 
-		output := ps.osc1.Output.Mul(ps.load(Osc1Level))
-		output += ps.osc2.Output.Mul(ps.load(Osc2Level))
+		premix := ps.osc1.Output.Mul(ps.load(Osc1Level))
+		premix += ps.osc2.Output.Mul(ps.load(Osc2Level))
+
+		filt1Cutoff := ps.loadPitch(ModulatedFilt1Cutoff)
+
+		ps.filt1.Input = premix
+		ps.filt1.Frequency = filt1Cutoff.Frequency()
+		ps.filt1.Resonance = ps.load(Filt1Resonance)
+		ps.filt1.Step()
+
+		var output Signal
+		switch ps.loadFilterMode(Filt1Mode) {
+		default:
+			output = premix // bypass
+		case FilterChamberlinLowPass:
+			output = ps.filt1.Lout << 1 // XXX ???
+		case FilterChamberlinHighPass:
+			output = ps.filt1.Hout << 1 // XXX ???
+		case FilterChamberlinBandPass:
+			output = ps.filt1.Bout << 1 // XXX ???
+		case FilterChamberlinNotch:
+			output = ps.filt1.Nout << 1 // XXX ???
+		}
 
 		ps.ampEnv.Step()
 		output = output.Mul(ps.ampEnv.Level)
@@ -198,6 +223,18 @@ func (ps *Engine) loadPitch(n int) Pitch {
 func (ps *Engine) storePitch(n int, p Pitch) {
 	r := ps.Memory.Register(n)
 	r.Store(uint32(p))
+}
+
+// loadFilterMode returns the contents of register n as a FilterMode.
+func (ps *Engine) loadFilterMode(n int) FilterMode {
+	r := ps.Memory.Register(n)
+	return FilterMode(r.Load())
+}
+
+// storeFilterMode replaces the contents of register n with p.
+func (ps *Engine) storeFilterMode(n int, m FilterMode) {
+	r := ps.Memory.Register(n)
+	r.Store(uint32(m))
 }
 
 func (ps *Engine) onButton(sc Scancode) {

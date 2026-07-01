@@ -66,28 +66,28 @@ func TestMatrixOutputCalculation(t *testing.T) {
 
 	in1.Store(uint32(120 * BPM))
 	assert.Equal(t, in1.Load(), uint32(0x0002bae8))
-	assert.Equal(t, out.Load(), uint32(0x0002bae7)) // SO close!
+	assert.Equal(t, out.Load(), uint32(0x0002bae8))
 
 	in1.Store(uint32(135 * BPM))
 	assert.Equal(t, in1.Load(), uint32(0x00031245))
-	assert.Equal(t, out.Load(), uint32(0x0002bae7)) // not updated
+	assert.Equal(t, out.Load(), uint32(0x0002bae8)) // not updated
 	m.Step()
-	assert.Equal(t, out.Load(), uint32(0x00031244)) // updated this time
+	assert.Equal(t, out.Load(), uint32(0x00031245)) // updated this time
 
 	in1.Store(uint32(120 * BPM))
 	in2.Store(uint32(noteC4.Pitch()))
 	wantNote := float64(noteC4)
 	assert.Equal(t, in2.Load(), uint32(0x50000000))
-	assert.Equal(t, out.Load(), uint32(0x00031244)) // not updated
+	assert.Equal(t, out.Load(), uint32(0x00031245)) // not updated
 	m.Step()
-	assert.Equal(t, out.Load(), uint32(0x0002bae7)) // updated now but no in2
+	assert.Equal(t, out.Load(), uint32(0x0002bae8)) // updated now but no in2
 
 	cc := (uint32(VoicePitch) << 24) | 0x123456
 	rc2.Store(uint32(cc))
 	assert.Equal(t, rc2.Load(), uint32(cc))
-	assert.Equal(t, out.Load(), uint32(0x0002bae7)) // not updated
+	assert.Equal(t, out.Load(), uint32(0x0002bae8)) // not updated
 	m.Step()
-	assert.Equal(t, out.Load(), uint32(0x0b6370a7)) // updated now
+	assert.Equal(t, out.Load(), uint32(0x0b6370a8)) // updated now
 
 	// bonus: check ModulatedOsc[12]Pitch are following VoicePitch
 	assert.Equal(t, op1.Load(), uint32(0x4fffff60))

@@ -14,6 +14,7 @@ func volumeTest(t *testing.T, volume int) (lo, hi int16) {
 	ps.init()
 	ps.setVolume(volume)
 	ps.kt.notes[127] = Note(127)
+	ps.storeFilterMode(Filt1Mode, FilterNoFilter)
 
 	buf := make([]int16, 128)
 	assert.NilError(t, ps.Fill(buf))
