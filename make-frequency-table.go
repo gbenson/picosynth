@@ -12,7 +12,7 @@ import (
 
 const (
 	SampleRate  = 48000
-	TableOctave = 10   // make as big as possible without overflow
+	TableOctave = 11   // make as big as possible without overflow
 	TableSize   = 1024 // make as small as possible to still pass tests
 )
 

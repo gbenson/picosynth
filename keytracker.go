@@ -29,7 +29,7 @@ func (kt *KeyTracker) Step() {
 	for _, note := range kt.notes {
 		if !note.IsValid() {
 			continue
-		} else if note > winner {
+		} else if note > winner || winner == NoNote {
 			// highest wins
 			winner = note
 		}
