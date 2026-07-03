@@ -1,6 +1,10 @@
 package picosynth
 
-import "gbenson.net/go/picosynth/internal/fmt"
+import (
+	"math"
+
+	"gbenson.net/go/picosynth/internal/fmt"
+)
 
 //go:generate go run make-frequency-table.go
 
@@ -15,6 +19,16 @@ const (
 	Hz            = KHz / 1000
 	BPM           = Hz / 60
 )
+
+// Hz returns the frequency as a floating point number of hertz.
+func (f Frequency) Hz() float64 {
+	return float64(uint32(f)) * SampleRate / float64(1<<32)
+}
+
+// Note returns the frequency as a floating point MIDI note number.
+func (f Frequency) Note() float64 {
+	return math.Log2(f.Hz()/440)*12 + 69
+}
 
 // String implements [fmt.Stringer].
 func (f Frequency) String() string {

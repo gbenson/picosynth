@@ -25,6 +25,11 @@ const (
 	Degree = Pi / 180
 )
 
+// Float64 returns the value as a float64 in the interval [-1,1).
+func (x Signal) Float64() float64 {
+	return float64(x) / -MinSignal
+}
+
 // Sin returns the sine of the signal x.
 func (x Signal) Sin() Signal {
 	return SineTable.Get(x)

@@ -99,7 +99,7 @@ func TestMatrixOutputCalculation(t *testing.T) {
 	assert.Equal(t, wantPitch, Pitch(0x50000000))
 	assert.Equal(t, gotPitch, Pitch(0x4fffff60))
 
-	gotNote := noteFromFrequency(gotPitch.Frequency())
+	gotNote := gotPitch.Frequency().Note()
 
 	t.Logf("want: MIDI %v, got MIDI %v", wantNote, gotNote)
 

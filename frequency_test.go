@@ -28,15 +28,10 @@ func TestNotePitch(t *testing.T) {
 func TestPitchFrequency(t *testing.T) {
 	for noteIn := range 128 {
 		pitch := Note(uint8(noteIn)).Pitch()
-		noteOut := noteFromFrequency(pitch.Frequency())
+		noteOut := pitch.Frequency().Note()
 
 		t.Logf("note: in %d => out %.2f\n", noteIn, noteOut)
 
 		assert.Check(t, math.Abs(noteOut-float64(noteIn)) < 0.02)
 	}
-}
-
-func noteFromFrequency(f Frequency) float64 {
-	freqHz := float64(f) * SampleRate / float64(1<<32)
-	return math.Log2(freqHz/440)*12 + 69
 }
