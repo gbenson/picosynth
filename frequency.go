@@ -1,5 +1,7 @@
 package picosynth
 
+import "gbenson.net/go/picosynth/internal/fmt"
+
 //go:generate go run make-frequency-table.go
 
 // The frequency of a waveform, scaled such that the interval
@@ -13,6 +15,11 @@ const (
 	Hz            = KHz / 1000
 	BPM           = Hz / 60
 )
+
+// String implements [fmt.Stringer].
+func (f Frequency) String() string {
+	return fmt.Hex32Stringer("Frequency", f)
+}
 
 // The frequency of a waveform, stored logarithmically in a uint32.
 // The upper 4 bits are the octave number with the rest being
@@ -49,6 +56,11 @@ func (p Pitch) Frequency() Frequency {
 
 	// Lookup and transform the value.
 	return Frequency(pitchToFrequencyTable[index] >> resultShift)
+}
+
+// String implements [fmt.Stringer].
+func (p Pitch) String() string {
+	return fmt.Hex32Stringer("Pitch", p)
 }
 
 // A MIDI note, with Note(60) being middle C.

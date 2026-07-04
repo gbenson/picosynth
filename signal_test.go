@@ -1,8 +1,12 @@
 package picosynth
 
 import (
+	"fmt"
 	"math"
+	"strings"
 	"testing"
+
+	"gotest.tools/v3/assert"
 )
 
 func TestSignalMul(t *testing.T) {
@@ -80,4 +84,19 @@ func TestSignalSin(t *testing.T) {
 	}
 
 	t.Log("maxF64Err =", maxF64Err)
+}
+
+func TestSignalString(t *testing.T) {
+	for _, v := range []Signal{
+		MinSignal,
+		Degree,
+		MaxSignal,
+		0x1234,
+	} {
+		want := fmt.Sprintf("Signal(0x%08x)", uint32(v))
+		got := v.String()
+		t.Logf("%v: want %q, got %q", v, want, got)
+		assert.Equal(t, got, want)
+		assert.Check(t, !strings.ContainsRune(got, '-'))
+	}
 }

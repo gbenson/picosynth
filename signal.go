@@ -1,8 +1,9 @@
 package picosynth
 
 import (
-	"fmt"
 	"math"
+
+	"gbenson.net/go/picosynth/internal/fmt"
 )
 
 // Signal is a signed Q1.31 fixed point number with range [-1,1).
@@ -42,5 +43,5 @@ func (a Signal) Mul(b Signal) Signal {
 
 // String implements [fmt.Stringer].
 func (v Signal) String() string {
-	return fmt.Sprintf("0x%08x", uint32(v))
+	return fmt.Hex32Stringer("Signal", v)
 }
