@@ -3,6 +3,10 @@ package hw
 
 import "io"
 
+type ADC interface {
+	Get() uint16
+}
+
 type AudioDevice interface {
 	io.Closer
 	WriteMono(buf []int16) error

@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"gotest.tools/v3/assert"
+
+	"gbenson.net/go/picosynth/internal/adc"
 )
 
 func volumeTest(t *testing.T, volume int) (lo, hi int16) {
@@ -43,4 +45,51 @@ func TestMaxVolume(t *testing.T) {
 	t.Logf("min = %d, max = %d", lo, hi)
 	assert.Check(t, lo < int16(-16384))
 	assert.Check(t, hi > int16(16383))
+}
+
+type MockADC uint16
+
+func (a MockADC) Get() uint16 {
+	return uint16(a)
+}
+
+// Create an Engine, apply the given ADC values, then generate a
+// single sample and return the values that ended up set in the
+// filter.
+func filterTest(t *testing.T, cutADC, resADC uint16) (Frequency, Signal) {
+	t.Helper()
+
+	ps := &Engine{}
+	ps.init()
+
+	var knobs [2]adc.ADC
+	knobs[0] = MockADC(cutADC)
+	knobs[1] = MockADC(resADC)
+
+	ps.knobs = knobs[:]
+
+	buf := make([]int16, 1)
+	assert.NilError(t, ps.Fill(buf))
+
+	return ps.filt1.Frequency, ps.filt1.Resonance
+}
+
+func TestMinCutoff(t *testing.T) {
+	cut, _ := filterTest(t, 0x0000, 0x1234)
+	assert.Check(t, Within01Percent(cut.Hz(), 20))
+}
+
+func TestMaxCutoff(t *testing.T) {
+	cut, _ := filterTest(t, 0xffff, 0x1234)
+	assert.Check(t, Within01Percent(cut.Hz(), 20_000))
+}
+
+func TestMinResonance(t *testing.T) {
+	_, res := filterTest(t, 0x1234, 0x0000)
+	assert.Equal(t, res, Signal(0))
+}
+
+func TestMaxResonance(t *testing.T) {
+	_, res := filterTest(t, 0x1234, 0xffff)
+	assert.Check(t, Within001Percent(res.Float64(), 1))
 }

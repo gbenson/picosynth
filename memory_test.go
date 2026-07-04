@@ -12,6 +12,10 @@ func TestEditable(t *testing.T) {
 	for i := range NumRegisters {
 		r.n = i
 		switch {
+		case i == Filt1Cutoff:
+			assert.Check(t, !r.Editable())
+		case i == Filt1Resonance:
+			assert.Check(t, !r.Editable())
 		case i < 0x80:
 			assert.Check(t, r.Editable())
 		case i < 0x100:

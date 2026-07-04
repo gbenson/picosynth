@@ -69,7 +69,17 @@ func (r *Register) Name() string {
 // practice it makes no sense to edit feedback registers or matrix
 // outputs since their contents will be replaced for every sample.
 func (r *Register) Editable() bool {
-	return r.n&0x180 != 0x80
+	n := r.n
+	switch {
+	case n&0x180 == 0x80:
+		return false
+	case n == Filt1Cutoff:
+		return false
+	case n == Filt1Resonance:
+		return false
+	default:
+		return true
+	}
 }
 
 func (r *Register) Store(v uint32) {

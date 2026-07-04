@@ -4,6 +4,7 @@ import (
 	"math/bits"
 	"time"
 
+	"gbenson.net/go/picosynth/internal/adc"
 	"gbenson.net/go/picosynth/internal/audio"
 	"gbenson.net/go/picosynth/internal/display"
 )
@@ -33,9 +34,15 @@ const (
 	InitialOctave = -1
 )
 
+var knobRegisters = []int{
+	Filt1Cutoff,
+	Filt1Resonance,
+}
+
 type Engine struct {
 	Memory Memory
 
+	knobs   []adc.ADC
 	display display.Display
 	editor  *MemoryEditor
 
@@ -107,6 +114,15 @@ func (ps *Engine) Run() error {
 	}
 	defer out.Close()
 
+	ps.knobs = make([]adc.ADC, len(knobRegisters))
+	for i, _ := range ps.knobs {
+		k, err := adc.Open(i)
+		if err != nil {
+			return err
+		}
+		ps.knobs[i] = k
+	}
+
 	const numWorkers = 4 // display, keyscanner, filler, player
 	wm := newWorkerManager(numWorkers)
 	wm.Start(&ps.display)
@@ -136,6 +152,19 @@ func (ps *Engine) Fill(buf []int16) error {
 			ps.onButton(sc)
 		}
 		activity = true
+	}
+	for i, _ := range ps.knobs {
+		v := ps.knobs[i].Get()
+		r := knobRegisters[i]
+		switch r {
+		case Filt1Cutoff:
+			p := Pitch(v)
+			p *= (MaxAudiblePitch - MinAudiblePitch) >> 16
+			p += MinAudiblePitch
+			ps.storePitch(r, p)
+		default:
+			ps.store(r, Signal(v)<<15) // 0xffff -> 0x7fff8000
+		}
 	}
 	if activity {
 		ps.display.KeepAlive()
