@@ -48,6 +48,12 @@ const (
 	Cent           = Octave / 1200
 )
 
+// The commonly stated range of human hearing.
+const (
+	MinAudiblePitch = Pitch(0x14a80000)
+	MaxAudiblePitch = Pitch(0xb41bffff)
+)
+
 // Frequency returns the pitch as a Frequency.
 func (p Pitch) Frequency() Frequency {
 	// The most significant 4 bits of p are the octave number

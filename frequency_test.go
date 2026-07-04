@@ -45,3 +45,47 @@ func TestPitchFrequency(t *testing.T) {
 		assert.Check(t, math.Abs(noteOut-float64(noteIn)) < 0.02)
 	}
 }
+
+// Validate MinAudiblePitch.
+func TestMinAudiblePitch(t *testing.T) {
+	t.Log("lowest audible pitch =", MinAudiblePitch)
+	minAudibleF := MinAudiblePitch.Frequency()
+	minAudibleHz := minAudibleF.Hz()
+	t.Logf("  => %v = %.3f hz", minAudibleF, minAudibleHz)
+	assert.Check(t, minAudibleHz >= 20)
+
+	var maxInfraP Pitch
+	var maxInfraF Frequency
+	for maxInfraP = MinAudiblePitch; maxInfraP > 0; maxInfraP-- {
+		maxInfraF = maxInfraP.Frequency()
+		if maxInfraF != minAudibleF {
+			break
+		}
+	}
+	t.Log("highest infrasound pitch =", maxInfraP)
+	maxInfraHz := maxInfraF.Hz()
+	t.Logf("  => %v = %.3f hz", maxInfraF, maxInfraHz)
+	assert.Check(t, maxInfraHz < 20)
+}
+
+// Validate MaxAudiblePitch.
+func TestMaxAudiblePitch(t *testing.T) {
+	t.Log("highest audible pitch =", MaxAudiblePitch)
+	maxAudibleF := MaxAudiblePitch.Frequency()
+	maxAudibleHz := maxAudibleF.Hz()
+	t.Logf("  => %v = %.3f hz", maxAudibleF, maxAudibleHz)
+	assert.Check(t, maxAudibleHz <= 20_000)
+
+	var minUltraP Pitch
+	var minUltraF Frequency
+	for minUltraP = MaxAudiblePitch; minUltraP < 0xffffffff; minUltraP++ {
+		minUltraF = minUltraP.Frequency()
+		if minUltraF != maxAudibleF {
+			break
+		}
+	}
+	t.Log("lowest ultrasound pitch =", minUltraP)
+	minUltraHz := minUltraF.Hz()
+	t.Logf("  => %v = %.3f hz", minUltraF, minUltraHz)
+	assert.Check(t, minUltraHz > 20_000)
+}
