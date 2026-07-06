@@ -19,7 +19,6 @@ const (
 
 	CmdBox  Opcode = iota + 1 // draw a filled box
 	CmdText                   // render arbitrary text
-	CmdHex                    // render a hexadecimal number
 )
 
 type Instruction struct {
