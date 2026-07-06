@@ -14,7 +14,10 @@ type MemoryEditor struct {
 	selected int // byte 0..3, or -1 for none
 }
 
-func (me *MemoryEditor) start() {
+func (me *MemoryEditor) init(m *Memory, d *display.Display) {
+	me.display = d
+	me.memory = m
+
 	// Advance to the first named editable register.
 	me.navigate(0)
 
@@ -41,7 +44,6 @@ func (me *MemoryEditor) onButton(sc Scancode) {
 	}
 
 	if !me.started {
-		me.start()
 		me.started = true
 	} else if !me.display.Sleeping() {
 		handler()
