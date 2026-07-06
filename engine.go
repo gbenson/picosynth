@@ -25,6 +25,10 @@ const (
 	//    entire other buffer to play before it will be output.
 	maxLatency = MaxLatency / 2
 
+	// maxBufferFrames is the maximum number of audio frames we can
+	// buffer without exceeding maxLatency.
+	maxBufferFrames = uint(SampleRate * maxLatency / time.Second)
+
 	MinVolume     = 0
 	MaxVolume     = 10
 	InitialVolume = 7
@@ -32,6 +36,19 @@ const (
 	MinOctave     = -3
 	MaxOctave     = 3
 	InitialOctave = -1
+)
+
+var (
+	// BufferFrames is the size of buffers passed to [Engine.Fill].
+	// The SDL emulator requires this to be a power of two.
+	BufferFrames = 1 << (bits.Len(maxBufferFrames) - 1)
+
+	// FillRate is the rate at which [Engine.Fill] is called.
+	//
+	// By extension this is the rate at which things that happen
+	// once per fill happen: scanning keys and buttons, reading
+	// potentiometer values, etc.
+	FillRate = SampleRate / BufferFrames
 )
 
 var knobRegisters = []int{
@@ -128,12 +145,7 @@ func (ps *Engine) Run() error {
 	wm.Start(&ps.display)
 	wm.Start(&ps.ks)
 
-	// Calculate how many frames we can buffer without exceeding
-	// maxLatency, then round down to a power of two.
-	bufferFrames := int(SampleRate * maxLatency / time.Second)
-	bufferFrames = 1 << (bits.Len(uint(bufferFrames)) - 1)
-
-	db := newDoubleBuffer[int16](bufferFrames, ps.Fill, out.WriteMono)
+	db := newDoubleBuffer[int16](BufferFrames, ps.Fill, out.WriteMono)
 
 	wm.Start(db.Filler)
 	wm.Start(db.Player)

@@ -3,11 +3,25 @@ package picosynth
 import (
 	"slices"
 	"testing"
+	"time"
 
 	"gotest.tools/v3/assert"
 
 	"gbenson.net/go/picosynth/internal/adc"
 )
+
+func TestConstants(t *testing.T) {
+	assert.Equal(t, SampleRate, 48000)
+	assert.Equal(t, MaxLatency, 10*time.Millisecond)
+
+	// Note we're very close to a step in buffer size; increasing
+	// MaxLatency from 10ms to 10+2/3ms steps to 256-frame buffers.
+	assert.Equal(t, BufferFrames, 128)
+
+	// This is the rate of anything that happens once per Fill:
+	// control surface scanning, voice pitch calculation, etc.
+	assert.Equal(t, FillRate, 375)
+}
 
 func volumeTest(t *testing.T, volume int) (lo, hi int16) {
 	t.Helper()
