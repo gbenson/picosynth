@@ -1,7 +1,5 @@
 package picosynth
 
-//go:generate python3 make-register-table.py
-
 // A Memory comprises 512 numbered 32-bit registers laid out as
 // follows:
 //
@@ -49,50 +47,21 @@ type Memory struct {
 	// being. This might be different on non-RP2040 hardware, ymmv.
 }
 
-type Register struct {
-	m *Memory
-	n int
-}
-
 func (m *Memory) Register(n int) Register {
 	return Register{m, n}
 }
 
-// Name returns the name of the register, or the empty string if
-// the register is unassigned.
-func (r *Register) Name() string {
-	return RegisterNames[r.n]
+func (m *Memory) Load(n int) uint32 {
+	m.maybeStepRegister(n)
+	return m.load(n)
 }
 
-// Editable reports whether the contents of r should be editable in
-// the memory editor.  All registers are editable in theory, but in
-// practice it makes no sense to edit feedback registers or matrix
-// outputs since their contents will be replaced for every sample.
-func (r *Register) Editable() bool {
-	n := r.n
-	switch {
-	case n&0x180 == 0x80:
-		return false
-	case n == Filt1Cutoff:
-		return false
-	case n == Filt1Resonance:
-		return false
-	default:
-		return true
-	}
+func (m *Memory) load(n int) uint32 {
+	return m.registers[n]
 }
 
-func (r *Register) Store(v uint32) {
-	r.m.registers[r.n] = v
-}
-
-func (r *Register) Load() uint32 {
-	r.m.maybeStepRegister(r.n)
-	return r.load()
-}
-
-func (r Register) load() uint32 {
-	return r.m.registers[r.n]
+func (m *Memory) Store(n int, v uint32) {
+	m.registers[n] = v
 }
 
 func (m *Memory) Step() {
