@@ -272,16 +272,24 @@ func (d *Display) do(index command) error {
 
 	case CmdText:
 		if cmd.W < 0 && cmd.H < 0 {
-			d.renderFullscreen(cmd.String)
+			d.stretchText(cmd.String)
 			return d.sync()
 		}
-		d.renderTextAt(cmd.X, cmd.Y, cmd.H, cmd.String)
+		d.textAt(cmd.X, cmd.Y, cmd.H, cmd.String)
 		return nil
 
 	default:
 		println("Display.do:", op, "not implemented")
 		return nil
 	}
+}
+
+// sync updates the display with any changes since its last call.
+func (d *Display) sync() error {
+	if err := d.device.SetBuffer(d.buf); err != nil {
+		return err
+	}
+	return d.device.Display()
 }
 
 // clear clears the buffer.
@@ -310,19 +318,8 @@ func (d *Display) box(x, y, w, h int32) {
 	}
 }
 
-// sync updates the display with any changes since its last call.
-func (d *Display) sync() error {
-	if err := d.device.SetBuffer(d.buf); err != nil {
-		return err
-	}
-	return d.device.Display()
-}
-
-// renderFullscreen renders the given text, expanded to fill the
-// entire screen.  This method is the expected use-case for the
-// display, for real-time feedback while playing.  It should operate
-// without allocation.
-func (d *Display) renderFullscreen(s string) {
+// stretchText renders the given text, expanded to fill the entire screen.
+func (d *Display) stretchText(s string) {
 	// pass 1: unpack glyphs into the first page of the buffer.
 	dst := d.buf
 	width := microfont.Render(dst, s)
@@ -379,9 +376,9 @@ func (d *Display) renderFullscreen(s string) {
 	}
 }
 
-// renderTextAt renders the given text, with its top left corner at
+// textAt renders the given text, with its top left corner at
 // x, y, roughly h pixels high.
-func (d *Display) renderTextAt(x, y, h int32, s string) {
+func (d *Display) textAt(x, y, h int32, s string) {
 	dst := d.buf[(y/8)*Width+x:]
 	width := microfont.Render(dst, s)
 	if h < 9 {
