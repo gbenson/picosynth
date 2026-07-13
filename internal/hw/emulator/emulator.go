@@ -85,6 +85,12 @@ func handleEvent(event sdl.Event) {
 		key := e.Keysym
 		switch {
 		case e.Type != sdl.KEYUP:
+		case key.Sym == sdl.K_LEFT:
+			encoder.position.Add(-1)
+			return
+		case key.Sym == sdl.K_RIGHT:
+			encoder.position.Add(1)
+			return
 		case key.Sym != sdl.K_q && key.Sym != sdl.K_c:
 		case (key.Mod & sdl.KMOD_CTRL) == 0:
 		default:

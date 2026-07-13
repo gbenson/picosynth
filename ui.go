@@ -3,6 +3,7 @@ package picosynth
 import (
 	"gbenson.net/go/picosynth/internal/adc"
 	"gbenson.net/go/picosynth/internal/display"
+	"gbenson.net/go/picosynth/internal/encoder"
 )
 
 const (
@@ -23,6 +24,7 @@ var potRegisters = []int{
 type UI struct {
 	mem *Memory
 
+	encoder *encoder.Encoder
 	pots    []adc.ADC
 	display display.Display
 
@@ -37,6 +39,12 @@ type UI struct {
 
 func (ui *UI) init(m *Memory) error {
 	ui.mem = m
+
+	enc, err := encoder.Open(0)
+	if err != nil {
+		return err
+	}
+	ui.encoder = enc
 
 	pots := make([]adc.ADC, len(potRegisters))
 	for i := range pots {
@@ -69,6 +77,15 @@ func (ui *UI) Step() {
 		}
 		activity = true
 	}
+
+	if v := ui.encoder.Read(); v < 0 {
+		println("decrease")
+		activity = true
+	} else if v > 0 {
+		println("increase")
+		activity = true
+	}
+
 	for i := range ui.pots {
 		v := ui.pots[i].Get()
 		r := potRegisters[i]
@@ -82,6 +99,7 @@ func (ui *UI) Step() {
 			ui.mem.StoreSignal(r, Signal(v)<<15) // 0xffff -> 0x7fff8000
 		}
 	}
+
 	if activity {
 		ui.display.KeepAlive()
 	}

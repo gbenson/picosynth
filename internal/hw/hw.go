@@ -24,3 +24,7 @@ type OutputPin interface {
 type InputPin interface {
 	Get() bool
 }
+
+type QuadratureDevice interface {
+	Position() int
+}
