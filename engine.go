@@ -51,7 +51,7 @@ var (
 	FillRate = SampleRate / BufferFrames
 )
 
-var knobRegisters = []int{
+var potRegisters = []int{
 	Filt1Cutoff,
 	Filt1Resonance,
 }
@@ -59,7 +59,7 @@ var knobRegisters = []int{
 type Engine struct {
 	Memory Memory
 
-	knobs   []adc.ADC
+	pots    []adc.ADC
 	display display.Display
 	editor  MemoryEditor
 
@@ -131,13 +131,13 @@ func (ps *Engine) Run() error {
 	}
 	defer out.Close()
 
-	ps.knobs = make([]adc.ADC, len(knobRegisters))
-	for i, _ := range ps.knobs {
+	ps.pots = make([]adc.ADC, len(potRegisters))
+	for i, _ := range ps.pots {
 		k, err := adc.Open(i)
 		if err != nil {
 			return err
 		}
-		ps.knobs[i] = k
+		ps.pots[i] = k
 	}
 
 	const numWorkers = 4 // display, keyscanner, filler, player
@@ -165,9 +165,9 @@ func (ps *Engine) Fill(buf []int16) error {
 		}
 		activity = true
 	}
-	for i, _ := range ps.knobs {
-		v := ps.knobs[i].Get()
-		r := knobRegisters[i]
+	for i, _ := range ps.pots {
+		v := ps.pots[i].Get()
+		r := potRegisters[i]
 		switch r {
 		case Filt1Cutoff:
 			p := Pitch(v)

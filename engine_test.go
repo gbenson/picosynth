@@ -76,11 +76,11 @@ func filterTest(t *testing.T, cutADC, resADC uint16) (Frequency, Signal) {
 	ps := &Engine{}
 	ps.init()
 
-	var knobs [2]adc.ADC
-	knobs[0] = MockADC(cutADC)
-	knobs[1] = MockADC(resADC)
+	var adcs [2]adc.ADC
+	adcs[0] = MockADC(cutADC)
+	adcs[1] = MockADC(resADC)
 
-	ps.knobs = knobs[:]
+	ps.pots = adcs[:]
 
 	buf := make([]int16, 1)
 	assert.NilError(t, ps.Fill(buf))
