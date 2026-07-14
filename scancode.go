@@ -72,6 +72,8 @@ const (
 	undefKO6KI5 // KI5
 	undefKO6KI6 // KI6
 	ButtonSong  // KI7
+
+	numScancodes
 )
 
 // Note returns the MIDI note of the key encoded by this scancode,
