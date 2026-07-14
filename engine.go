@@ -57,7 +57,7 @@ var potRegisters = []int{
 }
 
 type Engine struct {
-	Memory Memory
+	mem Memory
 
 	pots    []adc.ADC
 	display display.Display
@@ -81,7 +81,7 @@ type Engine struct {
 }
 
 func (ps *Engine) init() {
-	ps.editor.init(&ps.Memory, &ps.display)
+	ps.editor.init(&ps.mem, &ps.display)
 
 	ps.kt.init()
 
@@ -93,32 +93,30 @@ func (ps *Engine) init() {
 
 // Reset restores all synthesis parameters to their initial states.
 func (ps *Engine) Reset() {
-	ps.Memory.Matrix().Reset()
+	mem := &ps.mem
+	mx := mem.Matrix()
+
+	mx.Reset()
 
 	// Connect each audio oscillator's pitch input to the voice pitch.
-	ps.Connect(ModulatedOsc1Pitch, VoicePitch, MaxSignal)
-	ps.Connect(ModulatedOsc2Pitch, VoicePitch, MaxSignal)
+	mx.Connect(ModulatedOsc1Pitch, VoicePitch, MaxSignal)
+	mx.Connect(ModulatedOsc2Pitch, VoicePitch, MaxSignal)
 
 	// XXX above is general reset, below is a specific patch
 	// XXX (this also sets some things that aren't in the matrix... yet?)
 	ps.lfo1.Frequency = 10 * Hz
 	ps.lfo1.Shaper = SineShaper
-	ps.Connect(ModulatedOsc1Pitch, LFO1Output, MaxSignal>>9)
+	mx.Connect(ModulatedOsc1Pitch, LFO1Output, MaxSignal>>9)
 
 	ps.osc1.Shaper = TriSawShaper
 	ps.osc1.Shape = MaxSignal // rising saw
-	ps.store(Osc1Level, MaxSignal)
+	mem.StoreSignal(Osc1Level, MaxSignal)
 
 	ps.osc2.Shaper = SineShaper
-	ps.osc2.Shape = 0                      // zero phase shift
-	ps.store(Osc2Pitch, -1*Signal(Octave)) // XXX make pitch signed!
+	ps.osc2.Shape = 0                             // zero phase shift
+	mem.StoreSignal(Osc2Pitch, -1*Signal(Octave)) // XXX make pitch signed!
 
-	ps.storeFilterMode(Filt1Mode, FilterChamberlinLowPass)
-}
-
-// Connect adds or updates a connection in the modulation matrix.
-func (ps *Engine) Connect(dst, src int, gain Signal) {
-	ps.Memory.Matrix().Connect(dst, src, gain)
+	mem.Store(Filt1Mode, uint32(FilterChamberlinLowPass))
 }
 
 // Run is the main entry point of the firmware.
@@ -173,9 +171,9 @@ func (ps *Engine) Fill(buf []int16) error {
 			p := Pitch(v)
 			p *= (MaxAudiblePitch - MinAudiblePitch) >> 16
 			p += MinAudiblePitch
-			ps.storePitch(r, p)
+			ps.mem.StorePitch(r, p)
 		default:
-			ps.store(r, Signal(v)<<15) // 0xffff -> 0x7fff8000
+			ps.mem.StoreSignal(r, Signal(v)<<15) // 0xffff -> 0x7fff8000
 		}
 	}
 	if activity {
@@ -191,35 +189,35 @@ func (ps *Engine) Fill(buf []int16) error {
 	}
 
 	ps.kt.Step()
-	ps.storePitch(VoicePitch, ps.kt.Note.Pitch())
+	ps.mem.StorePitch(VoicePitch, ps.kt.Note.Pitch())
 	ps.ampEnv.Gate = ps.kt.Gate
 
 	for i := range buf {
-		ps.Memory.Step()
+		ps.mem.Step()
 
 		ps.lfo1.Step()
-		ps.store(LFO1Output, ps.lfo1.Output)
+		ps.mem.StoreSignal(LFO1Output, ps.lfo1.Output)
 
-		osc1Pitch := ps.loadPitch(ModulatedOsc1Pitch)
+		osc1Pitch := ps.mem.LoadPitch(ModulatedOsc1Pitch)
 		ps.osc1.Frequency = osc1Pitch.Frequency()
 		ps.osc1.Step()
 
-		osc2Pitch := ps.loadPitch(ModulatedOsc2Pitch)
+		osc2Pitch := ps.mem.LoadPitch(ModulatedOsc2Pitch)
 		ps.osc2.Frequency = osc2Pitch.Frequency()
 		ps.osc2.Step()
 
-		premix := ps.osc1.Output.Mul(ps.load(Osc1Level))
-		premix += ps.osc2.Output.Mul(ps.load(Osc2Level))
+		premix := ps.osc1.Output.Mul(ps.mem.LoadSignal(ModulatedOsc1Level))
+		premix += ps.osc2.Output.Mul(ps.mem.LoadSignal(ModulatedOsc2Level))
 
-		filt1Cutoff := ps.loadPitch(ModulatedFilt1Cutoff)
+		filt1Cutoff := ps.mem.LoadPitch(ModulatedFilt1Cutoff)
 
 		ps.filt1.Input = premix
 		ps.filt1.Frequency = filt1Cutoff.Frequency()
-		ps.filt1.Resonance = ps.load(Filt1Resonance)
+		ps.filt1.Resonance = ps.mem.LoadSignal(ModulatedFilt1Resonance)
 		ps.filt1.Step()
 
 		var output Signal
-		switch ps.loadFilterMode(Filt1Mode) {
+		switch FilterMode(ps.mem.Load(Filt1Mode)) {
 		default:
 			output = premix // bypass
 		case FilterChamberlinLowPass:
@@ -240,42 +238,6 @@ func (ps *Engine) Fill(buf []int16) error {
 	}
 
 	return nil
-}
-
-// load returns the contents of register n as a Signal.
-func (ps *Engine) load(n int) Signal {
-	r := ps.Memory.Register(n)
-	return Signal(r.Load())
-}
-
-// store replaces the contents of register n with v.
-func (ps *Engine) store(n int, v Signal) {
-	r := ps.Memory.Register(n)
-	r.Store(uint32(v))
-}
-
-// loadPitch returns the contents of register n as a Pitch.
-func (ps *Engine) loadPitch(n int) Pitch {
-	r := ps.Memory.Register(n)
-	return Pitch(r.Load())
-}
-
-// storePitch replaces the contents of register n with p.
-func (ps *Engine) storePitch(n int, p Pitch) {
-	r := ps.Memory.Register(n)
-	r.Store(uint32(p))
-}
-
-// loadFilterMode returns the contents of register n as a FilterMode.
-func (ps *Engine) loadFilterMode(n int) FilterMode {
-	r := ps.Memory.Register(n)
-	return FilterMode(r.Load())
-}
-
-// storeFilterMode replaces the contents of register n with p.
-func (ps *Engine) storeFilterMode(n int, m FilterMode) {
-	r := ps.Memory.Register(n)
-	r.Store(uint32(m))
 }
 
 func (ps *Engine) onButton(sc Scancode) {

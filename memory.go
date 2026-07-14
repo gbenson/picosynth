@@ -51,15 +51,18 @@ func (m *Memory) Register(n int) Register {
 	return Register{m, n}
 }
 
+// Load returns the contents of register n.
 func (m *Memory) Load(n int) uint32 {
 	m.maybeStepRegister(n)
 	return m.load(n)
 }
 
+// load returns the contents of register n without stepping.
 func (m *Memory) load(n int) uint32 {
 	return m.registers[n]
 }
 
+// StoreSignal replaces the contents of register n with v.
 func (m *Memory) Store(n int, v uint32) {
 	m.registers[n] = v
 }
@@ -145,6 +148,7 @@ func (mm Matrix) Clear() {
 	}
 }
 
+// Connect adds or updates a connection in the modulation matrix.
 func (mm Matrix) Connect(dst, src int, gain Signal) {
 	row := dst - MatrixOutputBase
 	cellsBase := MatrixCellsBase + row*MatrixCellsPerRow
@@ -161,4 +165,24 @@ func (mm Matrix) Connect(dst, src int, gain Signal) {
 		return
 	}
 	println("warning: Matrix.Connect: row", dst, "full")
+}
+
+// Load returns the contents of register n as a Pitch.
+func (m *Memory) LoadPitch(n int) Pitch {
+	return Pitch(m.Load(n))
+}
+
+// StorePitch replaces the contents of register n with v.
+func (m *Memory) StorePitch(n int, v Pitch) {
+	m.Store(n, uint32(v))
+}
+
+// Load returns the contents of register n as a Signal.
+func (m *Memory) LoadSignal(n int) Signal {
+	return Signal(m.Load(n))
+}
+
+// StoreSignal replaces the contents of register n with v.
+func (m *Memory) StoreSignal(n int, v Signal) {
+	m.Store(n, uint32(v))
 }
