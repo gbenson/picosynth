@@ -4,9 +4,7 @@ import (
 	"math/bits"
 	"time"
 
-	"gbenson.net/go/picosynth/internal/adc"
 	"gbenson.net/go/picosynth/internal/audio"
-	"gbenson.net/go/picosynth/internal/display"
 )
 
 const (
@@ -28,14 +26,6 @@ const (
 	// maxBufferFrames is the maximum number of audio frames we can
 	// buffer without exceeding maxLatency.
 	maxBufferFrames = uint(SampleRate * maxLatency / time.Second)
-
-	MinVolume     = 0
-	MaxVolume     = 10
-	InitialVolume = 7
-
-	MinOctave     = -3
-	MaxOctave     = 3
-	InitialOctave = -1
 )
 
 var (
@@ -51,22 +41,9 @@ var (
 	FillRate = SampleRate / BufferFrames
 )
 
-var potRegisters = []int{
-	Filt1Cutoff,
-	Filt1Resonance,
-}
-
 type Engine struct {
 	mem Memory
-
-	pots    []adc.ADC
-	display display.Display
-	editor  MemoryEditor
-
-	ks KeyScanner
-	kt KeyTracker
-
-	octave int
+	ui  UI
 
 	lfo1 BasicOscillator
 
@@ -76,19 +53,11 @@ type Engine struct {
 	osc2 BasicOscillator
 
 	filt1 ChamberlinFilter
-
-	volume int
 }
 
-func (ps *Engine) init() {
-	ps.editor.init(&ps.mem, &ps.display)
-
-	ps.kt.init()
-
-	ps.setOctave(InitialOctave)
-	ps.setVolume(InitialVolume)
-
+func (ps *Engine) init() error {
 	ps.Reset()
+	return ps.ui.init(&ps.mem)
 }
 
 // Reset restores all synthesis parameters to their initial states.
@@ -121,7 +90,9 @@ func (ps *Engine) Reset() {
 
 // Run is the main entry point of the firmware.
 func (ps *Engine) Run() error {
-	ps.init()
+	if err := ps.init(); err != nil {
+		return err
+	}
 
 	out, err := audio.Open(SampleRate)
 	if err != nil {
@@ -129,19 +100,10 @@ func (ps *Engine) Run() error {
 	}
 	defer out.Close()
 
-	ps.pots = make([]adc.ADC, len(potRegisters))
-	for i, _ := range ps.pots {
-		k, err := adc.Open(i)
-		if err != nil {
-			return err
-		}
-		ps.pots[i] = k
-	}
-
 	const numWorkers = 4 // display, keyscanner, filler, player
 	wm := newWorkerManager(numWorkers)
-	wm.Start(&ps.display)
-	wm.Start(&ps.ks)
+	wm.Start(&ps.ui.display)
+	wm.Start(&ps.ui.ks)
 
 	db := newDoubleBuffer[int16](BufferFrames, ps.Fill, out.WriteMono)
 
@@ -153,44 +115,16 @@ func (ps *Engine) Run() error {
 
 // Fill generates samples into the supplied buffer.
 func (ps *Engine) Fill(buf []int16) error {
-	var activity bool
-	for e := ps.ks.Poll(); e != NoEvent; e = ps.ks.Poll() {
-		sc := e.Scancode()
-		if note := sc.Note(); note.IsValid() {
-			ps.kt.Receive(note, e.Down())
-		} else if !e.Down() {
-			ps.onButton(sc)
-		}
-		activity = true
-	}
-	for i, _ := range ps.pots {
-		v := ps.pots[i].Get()
-		r := potRegisters[i]
-		switch r {
-		case Filt1Cutoff:
-			p := Pitch(v)
-			p *= (MaxAudiblePitch - MinAudiblePitch) >> 16
-			p += MinAudiblePitch
-			ps.mem.StorePitch(r, p)
-		default:
-			ps.mem.StoreSignal(r, Signal(v)<<15) // 0xffff -> 0x7fff8000
-		}
-	}
-	if activity {
-		ps.display.KeepAlive()
-	}
+	ps.ui.Step()
+	ps.ampEnv.Gate = ps.ui.kt.Gate
 
 	// Final shift converts 32-bit to 16 and applies ps.volume.
 	var finalShift int
-	if v := ps.volume; v <= MinVolume {
+	if v := ps.ui.volume; v <= MinVolume {
 		finalShift = 32 // silence
 	} else {
 		finalShift = (16 + (MaxVolume - v)) & 0x1f
 	}
-
-	ps.kt.Step()
-	ps.mem.StorePitch(VoicePitch, ps.kt.Note.Pitch())
-	ps.ampEnv.Gate = ps.kt.Gate
 
 	for i := range buf {
 		ps.mem.Step()
@@ -238,28 +172,4 @@ func (ps *Engine) Fill(buf []int16) error {
 	}
 
 	return nil
-}
-
-func (ps *Engine) onButton(sc Scancode) {
-	switch sc {
-	case ButtonVolumeUp:
-		ps.setVolume(ps.volume + 1)
-	case ButtonVolumeDown:
-		ps.setVolume(ps.volume - 1)
-	case ButtonTempoUp:
-		ps.setOctave(ps.octave + 1)
-	case ButtonTempoDown:
-		ps.setOctave(ps.octave - 1)
-	default:
-		ps.editor.onButton(sc)
-	}
-}
-
-func (ps *Engine) setOctave(v int) {
-	ps.octave = max(MinOctave, min(MaxOctave, v))
-	ps.kt.Transpose = ps.octave * 12
-}
-
-func (ps *Engine) setVolume(v int) {
-	ps.volume = max(MinVolume, min(MaxVolume, v))
 }

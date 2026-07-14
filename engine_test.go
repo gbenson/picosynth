@@ -6,8 +6,6 @@ import (
 	"time"
 
 	"gotest.tools/v3/assert"
-
-	"gbenson.net/go/picosynth/internal/adc"
 )
 
 func TestConstants(t *testing.T) {
@@ -27,9 +25,9 @@ func volumeTest(t *testing.T, volume int) (lo, hi int16) {
 	t.Helper()
 
 	ps := &Engine{}
-	ps.init()
-	ps.setVolume(volume)
-	ps.kt.notes[127] = Note(127)
+	assert.NilError(t, ps.init())
+	ps.ui.setVolume(volume)
+	ps.ui.kt.notes[127] = Note(127)
 	ps.mem.Store(Filt1Mode, uint32(FilterNoFilter))
 
 	buf := make([]int16, 128)
@@ -74,13 +72,10 @@ func filterTest(t *testing.T, cutADC, resADC uint16) (Frequency, Signal) {
 	t.Helper()
 
 	ps := &Engine{}
-	ps.init()
+	assert.NilError(t, ps.init())
 
-	var adcs [2]adc.ADC
-	adcs[0] = MockADC(cutADC)
-	adcs[1] = MockADC(resADC)
-
-	ps.pots = adcs[:]
+	ps.ui.pots[0] = MockADC(cutADC)
+	ps.ui.pots[1] = MockADC(resADC)
 
 	buf := make([]int16, 1)
 	assert.NilError(t, ps.Fill(buf))

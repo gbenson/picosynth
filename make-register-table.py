@@ -7,7 +7,7 @@ from functools import partial
 # | ----------- | ----------- | ---------------------------- |
 # | 0x000–0x0ff | 0x000–0x03f | 64 general purpose registers |
 # | 0x100–0x1ff | 0x040–0x07f | 64 matrix bias registers     |
-# | 0x200–0x2ff | 0x080–0x0bf | 64 feedback registers        |
+# | 0x200–0x2ff | 0x080–0x0bf | 64 input/feedback registers  |
 # | 0x300–0x3ff | 0x0c0–0x0ff | 64 matrix output registers   |
 # | 0x400–0x7ff | 0x100–0x0ff | 64×4 matrix connections      |
 

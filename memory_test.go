@@ -47,7 +47,7 @@ func TestEditable(t *testing.T) {
 
 func TestMatrixOutputCalculation(t *testing.T) {
 	var ps Engine
-	ps.init()
+	assert.NilError(t, ps.init())
 	m := &ps.mem
 
 	out := m.Register(ModulatedLFO2Rate) // value used by LFO2 for this step
