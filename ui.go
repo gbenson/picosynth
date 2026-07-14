@@ -53,10 +53,25 @@ type UI struct {
 	// buttonDownStep holds the step numbers at the last
 	// time each button transitioned from up to down.
 	buttonDownStep [numScancodes]int
+
+	// lastEventStep holds the step number when the last
+	// UIEvent was sent.
+	lastEventStep int
+
+	// filler->ui communication
+	events chan UIEvent
+
+	// ui->filler communication
+	storeTarget int
+	storeValue  chan uint32
+	valueStored chan bool
 }
 
 func (ui *UI) init(m *Memory) error {
 	ui.mem = m
+
+	ui.storeValue = make(chan uint32)
+	ui.valueStored = make(chan bool)
 
 	enc, err := encoder.Open(0)
 	if err != nil {
@@ -100,11 +115,8 @@ func (ui *UI) Step() {
 		activity = true
 	}
 
-	if v := ui.encoder.Read(); v < 0 {
-		println("decrease")
-		activity = true
-	} else if v > 0 {
-		println("increase")
+	if v := ui.encoder.Read(); v != 0 {
+		ui.sendEvent(EncoderMovedEvent(v))
 		activity = true
 	}
 
@@ -122,8 +134,15 @@ func (ui *UI) Step() {
 		}
 	}
 
-	if activity {
-		ui.display.KeepAlive()
+	if activity && ui.lastEventStep != ui.currentStep {
+		ui.sendEvent(GenericActivityEvent) // inhibit screensaver
+	}
+
+	select {
+	case v := <-ui.storeValue:
+		ui.mem.Store(ui.storeTarget, v)
+		ui.valueStored <- true
+	default:
 	}
 
 	ui.kt.Step()
@@ -136,16 +155,11 @@ func (ui *UI) onButtonDown(sc Scancode) {
 
 func (ui *UI) onButtonUp(sc Scancode) {
 	holdTime := ui.currentStep - ui.buttonDownStep[sc]
-	if holdTime < longPressTimeout {
-		ui.onPress(sc)
-	} else {
-		ui.onLongPress(sc)
+	if holdTime > longPressTimeout {
+		ui.sendEvent(LongPressEvent(sc))
+		return
 	}
-}
 
-// onPress is called when a button is released after having been held
-// for less than LongPressTimeout.
-func (ui *UI) onPress(sc Scancode) {
 	switch sc {
 	case ButtonVolumeUp:
 		ui.setVolume(ui.volume + 1)
@@ -156,14 +170,8 @@ func (ui *UI) onPress(sc Scancode) {
 	case ButtonTempoDown:
 		ui.setOctave(ui.octave - 1)
 	default:
-		ui.editor.onButton(sc)
+		ui.sendEvent(ButtonPressEvent(sc))
 	}
-}
-
-// onLongPress is called when a button is released after having been
-// held for LongPressTimeout or longer.
-func (ui *UI) onLongPress(sc Scancode) {
-	println("long press", sc, "ignored")
 }
 
 func (ui *UI) setOctave(v int) {
@@ -173,4 +181,67 @@ func (ui *UI) setOctave(v int) {
 
 func (ui *UI) setVolume(v int) {
 	ui.volume = max(MinVolume, min(MaxVolume, v))
+}
+
+func (ui *UI) sendEvent(e UIEvent) {
+	// non-blocking to prevent slow UI glitching audio
+	select {
+	case ui.events <- e:
+	default:
+		println(e.String(), "dropped")
+	}
+	ui.lastEventStep = ui.currentStep
+}
+
+// Store replaces the contents of register n with v.
+func (ui *UI) Store(n int, v uint32) {
+	ui.storeTarget = n
+	ui.storeValue <- v
+	<-ui.valueStored
+}
+
+// Name implements [worker].
+func (ui *UI) Name() string {
+	return "ui"
+}
+
+// Run implements [worker].
+func (ui *UI) Run() func() error {
+	return ui.run
+}
+
+func (ui *UI) run() error {
+	if ui.events != nil {
+		panic("already started")
+	}
+
+	ui.events = make(chan UIEvent, 8) // small buffer
+	for e := range ui.events {
+		switch e.Type() {
+		case ButtonPressEventType:
+			ui.onButton(e.Scancode(), false)
+		case LongPressEventType:
+			ui.onButton(e.Scancode(), true)
+		case EncoderMovedEventType:
+			ui.onEncoder(e.Delta())
+		case GenericActivityEvent:
+			ui.display.KeepAlive()
+		default:
+			println(e.String(), "unhandled")
+		}
+	}
+
+	return nil
+}
+
+func (ui *UI) onButton(sc Scancode, longPress bool) {
+	if longPress {
+		println("button", sc, "(long press) ignored")
+	} else {
+		ui.editor.onButton(sc)
+	}
+}
+
+func (ui *UI) onEncoder(delta int) {
+	println("encoder moved:", delta, "(unhandled)")
 }

@@ -100,10 +100,11 @@ func (ps *Engine) Run() error {
 	}
 	defer out.Close()
 
-	const numWorkers = 4 // display, keyscanner, filler, player
+	const numWorkers = 5 // display, keyscanner, filler, player, ui
 	wm := newWorkerManager(numWorkers)
 	wm.Start(&ps.ui.display)
 	wm.Start(&ps.ui.ks)
+	wm.Start(&ps.ui)
 
 	db := newDoubleBuffer[int16](BufferFrames, ps.Fill, out.WriteMono)
 
