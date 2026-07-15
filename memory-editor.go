@@ -1,10 +1,9 @@
 package picosynth
 
+import "gbenson.net/go/picosynth/internal/ui"
+
 type MemoryEditor struct {
 	ui *UI
-
-	// Startup management
-	started bool
 
 	// Register and byte cursors
 	register int
@@ -24,7 +23,32 @@ func (me *MemoryEditor) OnInit(ui *UI) {
 
 // OnButton implements [Page].
 func (me *MemoryEditor) OnButton(sc Scancode, longPress bool) bool {
-	if longPress {
+	const Hotkey = ButtonToneEdit
+
+	if !me.ui.HasFocus(me) {
+		// only the exact keypress grants focus to an unfocused page.
+		if !longPress || sc != Hotkey {
+			return false
+		}
+
+		// take focus
+		me.redraw()
+		return true
+
+	} else if sc == Hotkey {
+		if me.ui.display.Sleeping() {
+			// wake up
+			me.redraw()
+		} else {
+			// yield focus
+			me.ui.display.Clear()
+			me.ui.display.Sync()
+			me.ui.currentPage = nil
+		}
+		return true
+	} else if longPress {
+		// can leave by long-pressing other buttons, if anything's listening
+		// for the button we're returning false for.
 		return false
 	}
 
@@ -40,13 +64,9 @@ func (me *MemoryEditor) OnButton(sc Scancode, longPress bool) bool {
 		handler = me.onDecrease
 	case ButtonSE:
 		handler = me.onIncrease
-	default:
-		return false
 	}
 
-	if !me.started {
-		me.started = true
-	} else if !me.ui.display.Sleeping() {
+	if handler != nil && !me.ui.display.Sleeping() {
 		handler()
 	}
 
@@ -57,10 +77,6 @@ func (me *MemoryEditor) OnButton(sc Scancode, longPress bool) bool {
 
 // OnEncoder implements [Page].
 func (me *MemoryEditor) OnEncoder(delta int) {
-	if !me.started {
-		return
-	}
-
 	me.onChange(delta, false)
 	me.redraw()
 }
@@ -158,31 +174,19 @@ func (me *MemoryEditor) redraw() {
 
 	n := me.register
 	if n < MatrixCellsBase {
-		me.hexAt(117, 0, 8, uint8(n))
+		ui.RenderHexAt(d, 117, 0, 8, uint8(n))
 	} else {
 		d.TextAt(117, 0, 16, string([]byte{'1' + byte(n&3)}))
 		d.TextAt(113, 0, 8, "+")
 	}
 
 	r := me.Register()
-	d.TextAt(0, 0, 16, r.Name())
-
-	v := r.load()
-	for i := range 4 {
-		me.hexAt(int32(35*i+1), 16, 16, uint8((v>>((3-i)*8))&255))
-	}
+	ui.RenderRegisterName(d, r.Name())
+	ui.RenderHexValue(d, r.load())
 
 	if i := int32(me.selected); i >= 0 {
 		d.Box(35*i+1, 30, 22, 2)
 	}
 
 	d.Sync()
-}
-
-func (me *MemoryEditor) hexAt(x, y, h int32, v uint8) {
-	d := &me.ui.display
-	const digits = "0123456789abcdef"
-
-	d.TextAt(x, y, h, string(digits[v>>4]))
-	d.TextAt(x+(h/8)*6, y, h, string(digits[v&15]))
 }

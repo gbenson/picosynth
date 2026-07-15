@@ -23,8 +23,9 @@ const (
 )
 
 // longPressTimeout is the number of UI steps a button must be held
-// before a press turns into a long press.
-var longPressTimeout = int(LongPressTimeout) * FillRate / int(time.Second)
+// before a press turns into a long press.  The right shifts cancel
+// out, but prevent overflow on 32-bit platforms.
+var longPressTimeout = int(LongPressTimeout>>8) * FillRate / int(time.Second>>8)
 
 var potRegisters = []int{
 	Filt1Cutoff,
@@ -96,6 +97,9 @@ func (ui *UI) init(m *Memory) error {
 	ui.setVolume(InitialVolume)
 
 	ui.AddPage(&MemoryEditor{})
+	for _, pg := range ParameterGroups {
+		ui.AddPage(NewParameterGroupPage(pg))
+	}
 
 	return nil
 }
@@ -199,7 +203,18 @@ func (ui *UI) sendEvent(e UIEvent) {
 	ui.lastEventStep = ui.currentStep
 }
 
-// Store replaces the contents of register n with v.
+// Display implements [ui.Engine].
+func (ui *UI) Display() *display.Display {
+	return &ui.display
+}
+
+// Load implements [ui.Engine].
+func (ui *UI) Load(n int) uint32 {
+	// ui.Engine.Load absolutely should not step!
+	return ui.mem.load(n)
+}
+
+// Store implements [ui.Engine].
 func (ui *UI) Store(n int, v uint32) {
 	ui.storeTarget = n
 	ui.storeValue <- v
@@ -268,4 +283,8 @@ func (ui *UI) onEncoder(delta int) {
 	if p := ui.currentPage; p != nil {
 		p.OnEncoder(delta)
 	}
+}
+
+func (ui *UI) HasFocus(p Page) bool {
+	return p == ui.currentPage
 }
