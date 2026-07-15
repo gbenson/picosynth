@@ -35,7 +35,7 @@ func (r *Register) Load() uint32 {
 	return r.m.Load(r.n)
 }
 
-func (r Register) load() uint32 {
+func (r *Register) load() uint32 {
 	return r.m.load(r.n)
 }
 

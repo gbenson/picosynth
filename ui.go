@@ -38,8 +38,6 @@ type UI struct {
 	pots    []adc.ADC
 	display display.Display
 
-	editor MemoryEditor
-
 	ks KeyScanner
 	kt KeyTracker
 
@@ -65,6 +63,9 @@ type UI struct {
 	storeTarget int
 	storeValue  chan uint32
 	valueStored chan bool
+
+	currentPage Page
+	pages       []Page
 }
 
 func (ui *UI) init(m *Memory) error {
@@ -89,14 +90,19 @@ func (ui *UI) init(m *Memory) error {
 	}
 	ui.pots = pots
 
-	ui.editor.init(ui.mem, &ui.display)
-
 	ui.kt.init()
 
 	ui.setOctave(InitialOctave)
 	ui.setVolume(InitialVolume)
 
+	ui.AddPage(&MemoryEditor{})
+
 	return nil
+}
+
+func (ui *UI) AddPage(p Page) {
+	p.OnInit(ui)
+	ui.pages = append(ui.pages, p)
 }
 
 func (ui *UI) Step() {
@@ -235,13 +241,31 @@ func (ui *UI) run() error {
 }
 
 func (ui *UI) onButton(sc Scancode, longPress bool) {
+	if p := ui.currentPage; p != nil {
+		if p.OnButton(sc, longPress) {
+			return // handled
+		}
+	}
+
+	for _, p := range ui.pages {
+		if p == ui.currentPage {
+			continue
+		}
+		if p.OnButton(sc, longPress) {
+			ui.currentPage = p
+			return
+		}
+	}
+
 	if longPress {
 		println("button", sc, "(long press) ignored")
 	} else {
-		ui.editor.onButton(sc)
+		println("button", sc, "(short press) ignored")
 	}
 }
 
 func (ui *UI) onEncoder(delta int) {
-	println("encoder moved:", delta, "(unhandled)")
+	if p := ui.currentPage; p != nil {
+		p.OnEncoder(delta)
+	}
 }

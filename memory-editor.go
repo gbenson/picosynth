@@ -1,10 +1,7 @@
 package picosynth
 
-import "gbenson.net/go/picosynth/internal/display"
-
 type MemoryEditor struct {
-	display *display.Display
-	memory  *Memory
+	ui *UI
 
 	// Startup management
 	started bool
@@ -14,9 +11,9 @@ type MemoryEditor struct {
 	selected int // byte 0..3, or -1 for none
 }
 
-func (me *MemoryEditor) init(m *Memory, d *display.Display) {
-	me.display = d
-	me.memory = m
+// OnInit implements [Page].
+func (me *MemoryEditor) OnInit(ui *UI) {
+	me.ui = ui
 
 	// Advance to the first named editable register.
 	me.navigate(0)
@@ -25,7 +22,12 @@ func (me *MemoryEditor) init(m *Memory, d *display.Display) {
 	me.selected = -1
 }
 
-func (me *MemoryEditor) onButton(sc Scancode) {
+// OnButton implements [Page].
+func (me *MemoryEditor) OnButton(sc Scancode, longPress bool) bool {
+	if longPress {
+		return false
+	}
+
 	var handler func()
 	switch sc {
 	case ButtonKeyboard:
@@ -39,16 +41,27 @@ func (me *MemoryEditor) onButton(sc Scancode) {
 	case ButtonSE:
 		handler = me.onIncrease
 	default:
-		println("button", sc, "ignored")
-		return
+		return false
 	}
 
 	if !me.started {
 		me.started = true
-	} else if !me.display.Sleeping() {
+	} else if !me.ui.display.Sleeping() {
 		handler()
 	}
 
+	me.redraw()
+
+	return true
+}
+
+// OnEncoder implements [Page].
+func (me *MemoryEditor) OnEncoder(delta int) {
+	if !me.started {
+		return
+	}
+
+	me.onChange(delta, false)
 	me.redraw()
 }
 
@@ -109,13 +122,12 @@ func (me *MemoryEditor) navigate(steps int) {
 	}
 
 	for _ = range NumRegisters {
-		if me.registerName() != "" {
-			if r := me.memory.Register(me.register); r.Editable() {
-				if steps == 0 {
-					return
-				}
-				steps--
+		r := me.Register()
+		if r.Name() != "" && r.Editable() {
+			if steps == 0 {
+				return
 			}
+			steps--
 		}
 
 		me.register += step
@@ -131,17 +143,17 @@ func (me *MemoryEditor) adjust(delta, mask uint32) {
 	delta <<= shift
 	mask <<= shift
 
-	r := me.memory.Register(me.register)
+	r := me.Register()
 	v := r.load()
-	r.Store((v & ^mask) | ((v + delta) & mask))
+	me.ui.Store(me.register, (v & ^mask)|((v+delta)&mask))
 }
 
-func (me *MemoryEditor) registerName() string {
-	return RegisterNames[me.register]
+func (me *MemoryEditor) Register() Register {
+	return me.ui.mem.Register(me.register)
 }
 
 func (me *MemoryEditor) redraw() {
-	d := me.display
+	d := &me.ui.display
 	d.Clear()
 
 	n := me.register
@@ -152,9 +164,10 @@ func (me *MemoryEditor) redraw() {
 		d.TextAt(113, 0, 8, "+")
 	}
 
-	d.TextAt(0, 0, 16, me.registerName())
+	r := me.Register()
+	d.TextAt(0, 0, 16, r.Name())
 
-	v := me.memory.Register(me.register).load()
+	v := r.load()
 	for i := range 4 {
 		me.hexAt(int32(35*i+1), 16, 16, uint8((v>>((3-i)*8))&255))
 	}
@@ -167,7 +180,7 @@ func (me *MemoryEditor) redraw() {
 }
 
 func (me *MemoryEditor) hexAt(x, y, h int32, v uint8) {
-	d := me.display
+	d := &me.ui.display
 	const digits = "0123456789abcdef"
 
 	d.TextAt(x, y, h, string(digits[v>>4]))
