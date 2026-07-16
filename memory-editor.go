@@ -123,7 +123,7 @@ func (me *MemoryEditor) navigate(steps int) {
 
 	for _ = range NumRegisters {
 		r := me.Register()
-		if r.Name() != "" && r.Editable() {
+		if r.Assigned() && r.Editable() {
 			if steps == 0 {
 				return
 			}

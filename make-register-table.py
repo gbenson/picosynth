@@ -1,3 +1,4 @@
+import re
 import sys
 
 from functools import partial
@@ -124,6 +125,54 @@ def short_name_for(name):
         break
     return name
 
+def editable(n):
+    """Report whether the register should appear in the memory editor.
+
+    All registers are editable in theory, but in practice it makes no
+    sense to edit feedback registers or matrix outputs since their
+    contents will be replaced for every sample.
+    """
+    if n & 0x180 == 0x80:
+        return False  # feedback register or matrix output register
+    return registers[n] not in {
+	"Filt1Cutoff",
+	"Filt1Resonance",
+    }
+
+def register_kind(n):
+    if n >= 256:
+        return "MatrixCell"
+    if not editable(n):
+        return "NonEditable"
+    name = registers[n]
+    ab = re.split(r"\d", name)
+    if len(ab) != 2:
+        raise NotImplementedError(n, name)
+    a, b = ab
+
+    if a == "Env":
+        return "Gain" if b == "Sustain" else "Duration"
+
+    if a == "Filt":
+        a = "Filter"
+
+    match b:
+        case "Level":
+            return "Gain"
+        case "Pitch":
+            return "Detune"
+        case "Shape":
+            return "Phase"
+        case "Rate":
+            return "Rate"
+
+    return a + b
+
+def register_info(n):
+    if not (name := short_name_for(registers[n])):
+        return "nil" # unassigned
+    return f'{register_kind(n)}Register("{name}")'
+
 command = " ".join(["python"] + sys.argv)
 with open("register-table.go", "w") as fp:
     print = partial(print, file=fp)
@@ -144,13 +193,12 @@ with open("register-table.go", "w") as fp:
     print("\tNumRegisters")
     print(")")
     print()
-    print("// RegisterNames contains the names of all assigned registers.")
-    print("var RegisterNames = []string{")
-    for i, register in enumerate(registers):
+    print("var registerTable = []RegisterInfo{")
+    for i in range(len(registers)):
         if not i%16:
             if i:
                 print()
             print(f"\t// 0x{i:02X}..0x{i+15:02X}")
 
-        print(f'\t"{short_name_for(register)}",')
+        print(f"\t{register_info(i)},")
     print("}")
