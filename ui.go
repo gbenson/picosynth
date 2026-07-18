@@ -39,8 +39,8 @@ type UI struct {
 	pots    []adc.ADC
 	display display.Display
 
-	ks KeyScanner
-	kt KeyTracker
+	keyscanner KeyScanner
+	keytracker KeyTracker
 
 	octave int
 	volume int
@@ -91,7 +91,7 @@ func (ui *UI) init(m *Memory) error {
 	}
 	ui.pots = pots
 
-	ui.kt.init()
+	ui.keytracker.init()
 
 	ui.setOctave(InitialOctave)
 	ui.setVolume(InitialVolume)
@@ -113,10 +113,10 @@ func (ui *UI) Step() {
 	ui.currentStep++
 
 	var activity bool
-	for e := ui.ks.Poll(); e != NoEvent; e = ui.ks.Poll() {
+	for e := ui.keyscanner.Poll(); e != NoEvent; e = ui.keyscanner.Poll() {
 		sc := e.Scancode()
 		if note := sc.Note(); note.IsValid() {
-			ui.kt.Receive(note, e.Down())
+			ui.keytracker.Receive(note, e.Down())
 		} else if e.Down() {
 			ui.onButtonDown(sc)
 		} else {
@@ -155,8 +155,8 @@ func (ui *UI) Step() {
 	default:
 	}
 
-	ui.kt.Step()
-	ui.mem.StorePitch(VoicePitch, ui.kt.Note.Pitch())
+	ui.keytracker.Step()
+	ui.mem.StorePitch(VoicePitch, ui.keytracker.Note.Pitch())
 }
 
 func (ui *UI) onButtonDown(sc Scancode) {
@@ -186,7 +186,7 @@ func (ui *UI) onButtonUp(sc Scancode) {
 
 func (ui *UI) setOctave(v int) {
 	ui.octave = max(MinOctave, min(MaxOctave, v))
-	ui.kt.Transpose = ui.octave * 12
+	ui.keytracker.Transpose = ui.octave * 12
 }
 
 func (ui *UI) setVolume(v int) {

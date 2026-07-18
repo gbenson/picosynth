@@ -30,7 +30,7 @@ func volumeTest(t *testing.T, volume int) (lo, hi int16) {
 	ps := &Engine{}
 	assert.NilError(t, ps.init())
 	ps.ui.setVolume(volume)
-	ps.ui.kt.notes[127] = Note(127)
+	ps.ui.keytracker.notes[127] = Note(127)
 	ps.mem.Store(Filt1Mode, uint32(FilterNoFilter))
 
 	buf := make([]int16, 128)

@@ -103,7 +103,7 @@ func (ps *Engine) Run() error {
 	const numWorkers = 5 // display, keyscanner, filler, player, ui
 	wm := newWorkerManager(numWorkers)
 	wm.Start(&ps.ui.display)
-	wm.Start(&ps.ui.ks)
+	wm.Start(&ps.ui.keyscanner)
 	wm.Start(&ps.ui)
 
 	db := newDoubleBuffer[int16](BufferFrames, ps.Fill, out.WriteMono)
@@ -117,7 +117,7 @@ func (ps *Engine) Run() error {
 // Fill generates samples into the supplied buffer.
 func (ps *Engine) Fill(buf []int16) error {
 	ps.ui.Step()
-	ps.ampEnv.Gate = ps.ui.kt.Gate
+	ps.ampEnv.Gate = ps.ui.keytracker.Gate
 
 	// Final shift converts 32-bit to 16 and applies ps.volume.
 	var finalShift int
