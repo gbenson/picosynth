@@ -21,7 +21,10 @@ func TestConstants(t *testing.T) {
 	assert.Equal(t, FillRate, 375)
 
 	assert.Equal(t, LongPressTimeout, 500*time.Millisecond)
-	assert.Equal(t, longPressTimeout, 375/2)
+	assert.Equal(t, longPressTimeout, uint32(187))
+
+	assert.Equal(t, ActivityTimeout, 30*time.Second)
+	assert.Equal(t, activityTimeout, uint32(11250))
 }
 
 func volumeTest(t *testing.T, volume int) (lo, hi int16) {

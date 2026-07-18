@@ -1,9 +1,16 @@
 package picosynth
 
-import "gbenson.net/go/picosynth/internal/ui"
+import (
+	"sync/atomic"
+
+	"gbenson.net/go/picosynth/internal/display"
+	"gbenson.net/go/picosynth/internal/ui"
+)
+
+type Parameter = ui.Parameter
 
 type ParameterSpec interface {
-	Parameter() ui.Parameter
+	Parameter() Parameter
 }
 
 type ParameterGroup struct {
@@ -17,8 +24,8 @@ type ParameterGroupPage struct {
 	ParameterGroup
 
 	ui       *UI
-	params   []ui.Parameter
-	selected int
+	params   []Parameter
+	selected atomic.Uint32
 }
 
 // NewParameterGroupPage creates and initializes a new [ParameterGroupPage].
@@ -26,38 +33,48 @@ func NewParameterGroupPage(pg ParameterGroup) *ParameterGroupPage {
 	return &ParameterGroupPage{ParameterGroup: pg}
 }
 
+// SelectedParameter returns the currently selected parameter.
+func (pg *ParameterGroupPage) SelectedParameter() Parameter {
+	return pg.params[pg.selected.Load()]
+}
+
 // OnInit implements [Page].
-func (pg *ParameterGroupPage) OnInit(sys *UI) {
+func (pg *ParameterGroupPage) OnInit(ui *UI) {
 	if len(pg.Parameters) < 1 {
 		panic("no parameters")
 	}
 
-	pg.ui = sys
-	pg.params = make([]ui.Parameter, len(pg.Parameters))
+	pg.params = make([]Parameter, len(pg.Parameters))
 	for i, ps := range pg.Parameters {
 		pg.params[i] = ps.Parameter()
 	}
 }
 
-// OnButton implements [Page].
-func (pg *ParameterGroupPage) OnButton(sc Scancode, longpress bool) bool {
+// OnFocus implements [Page].
+func (pg *ParameterGroupPage) OnFocus(ui *UI) {
+	pg.SelectedParameter().Focus(ui.mem)
+}
+
+// OnButtonPress implements [Page].
+func (pg *ParameterGroupPage) OnButtonPress(ui *UI, sc Scancode, longpress bool) bool {
 	if sc != pg.Hotkey {
 		return false
 	}
 
-	if !pg.ui.HasFocus(pg) {
+	if !ui.HasFocus(pg) {
 		// only the exact press grants focus to an unfocused page.
 		if longpress != pg.LongPress {
 			return false
 		}
-	} else if pg.ui.display.Sleeping() {
+		return true
+
+	} else if ui.ScreenBlanked() {
 		// a short press can wake the display for a long press page,
 		// but a long press can't wake the display for a short press
 		// page. return false and let the long-press page for this
 		// hotkey take focus and wake the screen.
-		if longpress && !pg.LongPress {
-			return false
-		}
+		return !longpress || pg.LongPress
+
 	} else if longpress {
 		// a long press on a short-press page means switch to the
 		// long-press page.	we return false so the long-press page
@@ -67,30 +84,39 @@ func (pg *ParameterGroupPage) OnButton(sc Scancode, longpress bool) bool {
 		}
 
 		// a long press on a long press page switches to the short-
-		// press page for the same hotkey. ideally :)  we fake a
-		// short press to try and switch, but the event might drop,
-		// in which case having unset currentPage means we'll enter
-		// the short-press page if the user short presses the hotkey
-		// (which they likely will if that's what they wanted).
-		pg.ui.currentPage = nil
-		pg.ui.sendEvent(ButtonPressEvent(sc))
+		// press page for the same hotkey. We fake a short press to
+		// make the switch.
+		ui.YieldFocus()
+		ui.onButtonPress(sc, false)
 		return true
-	} else {
-		// we're focussed, the screen isn't alseep, and we got a short press.
-		// step through parameters.
-		pg.selected++
-		if pg.selected >= len(pg.Parameters) {
-			pg.selected = 0
-		}
-	}
 
-	pg.params[pg.selected].Render(pg.ui)
-	return true
+	} else {
+		// we're focussed, the screen isn't alseep, and we got a short
+		// press: step through parameters. NB I know this isn't atomic,
+		// pg.selected is atomic because it's shared between the filler
+		// goroutine (us, we sets it) and the UI display refresh one
+		// (which only reads it.)  The only place it's stored is here.
+		selected := pg.selected.Load()
+		selected++
+		if selected >= uint32(len(pg.Parameters)) {
+			selected = 0
+		}
+		pg.selected.Store(selected)
+
+		pg.OnFocus(ui)
+		ui.InvalidateDisplay()
+
+		return true
+	}
 }
 
-// OnEncoder implements [Page].
-func (pg *ParameterGroupPage) OnEncoder(delta int) {
-	p := pg.params[pg.selected]
-	p.Adjust(pg.ui, int32(delta))
-	p.Render(pg.ui)
+// OnEncoderMove implements [Page].
+func (pg *ParameterGroupPage) OnEncoderMove(ui *UI, delta int) {
+	pg.SelectedParameter().Adjust(ui.mem, int32(delta))
+	ui.InvalidateDisplay()
+}
+
+// Render implements [Page].
+func (pg *ParameterGroupPage) Render(d *display.Display, now uint32) {
+	pg.SelectedParameter().Render(d)
 }

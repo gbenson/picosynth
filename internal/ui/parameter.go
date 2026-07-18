@@ -1,8 +1,11 @@
 package ui
 
+import "sync/atomic"
+
 type Parameter interface {
-	Adjust(system System, amount int32)
-	Render(system System)
+	Focus(m Memory)
+	Adjust(m Memory, amount int32)
+	Render(d *Display)
 }
 
 type Value interface {
@@ -13,18 +16,32 @@ type NumericParameter[T Value] struct {
 	Name     string
 	Register int
 	Min, Max T
+
+	value atomic.Uint32
 }
 
-func (p *NumericParameter[T]) Adjust(system System, amount int32) {
+func (p *NumericParameter[T]) Focus(m Memory) {
+	p.update(T(m.Load(p.Register)))
+}
+
+func (p *NumericParameter[T]) Adjust(m Memory, amount int32) {
 	step := int32((int64(p.Max) - int64(p.Min)) >> 7) // XXX accelerate
-	ClampedAdjust(system, p.Register, p.Min, p.Max, amount*step)
+	amount *= step
+
+	r := p.Register
+	v := clampedAdd(T(m.Load(r)), amount, p.Min, p.Max)
+	m.Store(r, uint32(v))
+	p.update(v)
 }
 
-func (p *NumericParameter[T]) Render(system System) {
-	d := system.Display()
+func (p *NumericParameter[T]) update(v T) {
+	p.value.Store(uint32(v))
+}
+
+func (p *NumericParameter[T]) Render(d *Display) {
 	d.Clear()
 	RenderRegisterName(d, p.Name)
-	RenderHexValue(d, system.Load(p.Register))
+	RenderHexValue(d, p.value.Load())
 	d.Sync()
 }
 
@@ -32,33 +49,35 @@ type EnumParameter struct {
 	Name     string
 	Register int
 	Names    []string
+
+	value atomic.Uint32
 }
 
-func (p *EnumParameter) Adjust(system System, amount int32) {
-	WrappedAdjust(system, p.Register, 0, uint32(len(p.Names)-1), amount)
+func (p *EnumParameter) Focus(m Memory) {
+	p.update(m.Load(p.Register))
 }
 
-func (p *EnumParameter) Render(system System) {
-	d := system.Display()
+func (p *EnumParameter) Adjust(m Memory, amount int32) {
+	r := p.Register
+	v := wrappedAdd(m.Load(r), amount, 0, uint32(len(p.Names)-1))
+	m.Store(r, v)
+	p.update(v)
+}
+
+func (p *EnumParameter) update(v uint32) {
+	p.value.Store(v)
+}
+
+func (p *EnumParameter) Render(d *Display) {
 	d.Clear()
 	RenderRegisterName(d, p.Name)
 	s := "bork"
-	i := system.Load(p.Register)
+	i := p.value.Load()
 	if i < uint32(len(p.Names)) {
 		s = p.Names[i]
 	}
 	RenderTextValue(d, s)
 	d.Sync()
-}
-
-// ClampedAdjust adds amount to register r clamping the result to [minv,maxv].
-func ClampedAdjust[T Value](system System, r int, minv, maxv T, amount int32) {
-	system.Store(r, uint32(clampedAdd(T(system.Load(r)), amount, minv, maxv)))
-}
-
-// WrappedAdjust adds amount to register, wrapping the result at [minv,maxv].
-func WrappedAdjust[T Value](system System, r int, minv, maxv T, amount int32) {
-	system.Store(r, uint32(wrappedAdd(T(system.Load(r)), amount, minv, maxv)))
 }
 
 // clampedAdd returns x+y clamped to [minv,maxv].

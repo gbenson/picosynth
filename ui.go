@@ -1,6 +1,7 @@
 package picosynth
 
 import (
+	"sync/atomic"
 	"time"
 
 	"gbenson.net/go/picosynth/internal/adc"
@@ -20,12 +21,29 @@ const (
 	// LongPressTimeout is the length of time a button must be held
 	// before a press turns into a long press.
 	LongPressTimeout = 500 * time.Millisecond
+
+	// FrameRate is the rate at which the display is updated.
+	FrameRate = 10
+
+	// ActivityTimeout is the length of time without user activity
+	// before the user will be considered inactive.
+	ActivityTimeout = 30 * time.Second
 )
 
-// longPressTimeout is the number of UI steps a button must be held
-// before a press turns into a long press.  The right shifts cancel
-// out, but prevent overflow on 32-bit platforms.
-var longPressTimeout = int(LongPressTimeout>>8) * FillRate / int(time.Second>>8)
+var (
+	// longPressTimeout is the number of UI steps a button must be
+	// held before a press turns into a long press.
+	longPressTimeout = uiStepCount(LongPressTimeout)
+
+	// activityTimeout is the number of UI steps without user activity
+	// before the user will be considered inactive.
+	activityTimeout = uiStepCount(ActivityTimeout)
+)
+
+// uiStepCount returns a duration as a number of UI steps.
+func uiStepCount(d time.Duration) uint32 {
+	return uint32(int64(d) * int64(FillRate) / int64(time.Second))
+}
 
 var potRegisters = []int{
 	Filt1Cutoff,
@@ -37,7 +55,6 @@ type UI struct {
 
 	encoder *encoder.Encoder
 	pots    []adc.ADC
-	display display.Display
 
 	keyscanner KeyScanner
 	keytracker KeyTracker
@@ -45,35 +62,30 @@ type UI struct {
 	octave int
 	volume int
 
-	// currentStep is the step number of the current step.
-	// It's incremented at the start of every [UI.Step].
-	currentStep int
+	// currentStep is the step number of the current step.  It's
+	// incremented at the start of every [UI.Step], which at the
+	// current FillRate of 375Hz gives us 132.5 days without wrapping.
+	currentStep atomic.Uint32
 
-	// buttonDownStep holds the step numbers at the last
-	// time each button transitioned from up to down.
-	buttonDownStep [numScancodes]int
+	// buttonDownStep is the step numbers of the last steps each
+	// button transitioned from up to down.
+	buttonDownStep [numScancodes]uint32
 
-	// lastEventStep holds the step number when the last
-	// UIEvent was sent.
-	lastEventStep int
+	// lastActivityStep is the step number of the last step where
+	// user activity was observed.
+	lastActivityStep atomic.Uint32
 
-	// filler->ui communication
-	events chan UIEvent
+	screenBlanked atomic.Bool // screensaver active
+	screenCurrent atomic.Bool // no redraw required
 
-	// ui->filler communication
-	storeTarget int
-	storeValue  chan uint32
-	valueStored chan bool
-
-	currentPage Page
+	visualizer  Visualizer
+	currentPage atomic.Pointer[Page]
 	pages       []Page
+	defaultPage Page
 }
 
 func (ui *UI) init(m *Memory) error {
 	ui.mem = m
-
-	ui.storeValue = make(chan uint32)
-	ui.valueStored = make(chan bool)
 
 	enc, err := encoder.Open(0)
 	if err != nil {
@@ -96,9 +108,14 @@ func (ui *UI) init(m *Memory) error {
 	ui.setOctave(InitialOctave)
 	ui.setVolume(InitialVolume)
 
+	ui.AddPage(&ui.visualizer)
 	ui.AddPage(&MemoryEditor{})
 	for _, pg := range ParameterGroups {
 		ui.AddPage(NewParameterGroupPage(pg))
+	}
+
+	if ui.CurrentPage() == nil {
+		panic("no pages")
 	}
 
 	return nil
@@ -107,26 +124,36 @@ func (ui *UI) init(m *Memory) error {
 func (ui *UI) AddPage(p Page) {
 	p.OnInit(ui)
 	ui.pages = append(ui.pages, p)
+
+	if ui.defaultPage == nil {
+		ui.defaultPage = p
+		ui.focus(p)
+	}
 }
 
 func (ui *UI) Step() {
-	ui.currentStep++
+	currentStep := ui.currentStep.Add(1)
 
 	var activity bool
 	for e := ui.keyscanner.Poll(); e != NoEvent; e = ui.keyscanner.Poll() {
 		sc := e.Scancode()
 		if note := sc.Note(); note.IsValid() {
 			ui.keytracker.Receive(note, e.Down())
+			activity = true
 		} else if e.Down() {
-			ui.onButtonDown(sc)
+			ui.onButtonDown(sc, currentStep)
+			// don't register activity, or, if the screen is blanked,
+			// it'll unblank on the buttonDown so the eat-the-key
+			// login in various Page OnButtonPress handles will never
+			// be entered: the screen *won't* be blank on the buttonUp.
 		} else {
-			ui.onButtonUp(sc)
+			ui.onButtonUp(sc, currentStep)
+			activity = true
 		}
-		activity = true
 	}
 
 	if v := ui.encoder.Read(); v != 0 {
-		ui.sendEvent(EncoderMovedEvent(v))
+		ui.onEncoderMove(v)
 		activity = true
 	}
 
@@ -142,31 +169,25 @@ func (ui *UI) Step() {
 		default:
 			ui.mem.StoreSignal(r, Signal(v)<<15) // 0xffff -> 0x7fff8000
 		}
+		//activity = true
 	}
 
-	if activity && ui.lastEventStep != ui.currentStep {
-		ui.sendEvent(GenericActivityEvent) // inhibit screensaver
-	}
-
-	select {
-	case v := <-ui.storeValue:
-		ui.mem.Store(ui.storeTarget, v)
-		ui.valueStored <- true
-	default:
+	if activity {
+		ui.lastActivityStep.Store(currentStep)
 	}
 
 	ui.keytracker.Step()
 	ui.mem.StorePitch(VoicePitch, ui.keytracker.Note.Pitch())
 }
 
-func (ui *UI) onButtonDown(sc Scancode) {
-	ui.buttonDownStep[sc] = ui.currentStep
+func (ui *UI) onButtonDown(sc Scancode, currentStep uint32) {
+	ui.buttonDownStep[sc] = currentStep
 }
 
-func (ui *UI) onButtonUp(sc Scancode) {
-	holdTime := ui.currentStep - ui.buttonDownStep[sc]
+func (ui *UI) onButtonUp(sc Scancode, currentStep uint32) {
+	holdTime := currentStep - ui.buttonDownStep[sc]
 	if holdTime > longPressTimeout {
-		ui.sendEvent(LongPressEvent(sc))
+		ui.onButtonPress(sc, true)
 		return
 	}
 
@@ -180,7 +201,7 @@ func (ui *UI) onButtonUp(sc Scancode) {
 	case ButtonTempoDown:
 		ui.setOctave(ui.octave - 1)
 	default:
-		ui.sendEvent(ButtonPressEvent(sc))
+		ui.onButtonPress(sc, false)
 	}
 }
 
@@ -193,81 +214,19 @@ func (ui *UI) setVolume(v int) {
 	ui.volume = max(MinVolume, min(MaxVolume, v))
 }
 
-func (ui *UI) sendEvent(e UIEvent) {
-	// non-blocking to prevent slow UI glitching audio
-	select {
-	case ui.events <- e:
-	default:
-		println(e.String(), "dropped")
-	}
-	ui.lastEventStep = ui.currentStep
-}
+func (ui *UI) onButtonPress(sc Scancode, longpress bool) {
+	currentPage := ui.CurrentPage()
 
-// Display implements [ui.Engine].
-func (ui *UI) Display() *display.Display {
-	return &ui.display
-}
-
-// Load implements [ui.Engine].
-func (ui *UI) Load(n int) uint32 {
-	// ui.Engine.Load absolutely should not step!
-	return ui.mem.load(n)
-}
-
-// Store implements [ui.Engine].
-func (ui *UI) Store(n int, v uint32) {
-	ui.storeTarget = n
-	ui.storeValue <- v
-	<-ui.valueStored
-}
-
-// Name implements [worker].
-func (ui *UI) Name() string {
-	return "ui"
-}
-
-// Run implements [worker].
-func (ui *UI) Run() func() error {
-	return ui.run
-}
-
-func (ui *UI) run() error {
-	if ui.events != nil {
-		panic("already started")
-	}
-
-	ui.events = make(chan UIEvent, 8) // small buffer
-	for e := range ui.events {
-		switch e.Type() {
-		case ButtonPressEventType:
-			ui.onButton(e.Scancode(), false)
-		case LongPressEventType:
-			ui.onButton(e.Scancode(), true)
-		case EncoderMovedEventType:
-			ui.onEncoder(e.Delta())
-		case GenericActivityEvent:
-			ui.display.KeepAlive()
-		default:
-			println(e.String(), "unhandled")
-		}
-	}
-
-	return nil
-}
-
-func (ui *UI) onButton(sc Scancode, longpress bool) {
-	if p := ui.currentPage; p != nil {
-		if p.OnButton(sc, longpress) {
-			return // handled
-		}
+	if currentPage.OnButtonPress(ui, sc, longpress) {
+		return // handled
 	}
 
 	for _, p := range ui.pages {
-		if p == ui.currentPage {
-			continue
+		if p == currentPage {
+			continue // currentPage had its turn
 		}
-		if p.OnButton(sc, longpress) {
-			ui.currentPage = p
+		if p.OnButtonPress(ui, sc, longpress) {
+			ui.focus(p)
 			return
 		}
 	}
@@ -279,12 +238,78 @@ func (ui *UI) onButton(sc Scancode, longpress bool) {
 	}
 }
 
-func (ui *UI) onEncoder(delta int) {
-	if p := ui.currentPage; p != nil {
-		p.OnEncoder(delta)
-	}
+func (ui *UI) onEncoderMove(delta int) {
+	ui.CurrentPage().OnEncoderMove(ui, delta)
+}
+
+// CurrentPage returns the currently displayed page.
+func (ui *UI) CurrentPage() Page {
+	return *ui.currentPage.Load()
 }
 
 func (ui *UI) HasFocus(p Page) bool {
-	return p == ui.currentPage
+	return ui.CurrentPage() == p
+}
+
+func (ui *UI) YieldFocus() {
+	ui.focus(ui.defaultPage)
+}
+
+func (ui *UI) focus(p Page) {
+	if p == nil {
+		panic("nil page")
+	}
+	ui.currentPage.Store(&p)
+	p.OnFocus(ui)
+	ui.InvalidateDisplay()
+}
+
+// ScreenBlanked reports whether the screen is blanked.
+func (ui *UI) ScreenBlanked() bool {
+	return ui.screenBlanked.Load()
+}
+
+// InvalidateDisplay requests a redraw at the next refresh.
+func (ui *UI) InvalidateDisplay() {
+	ui.screenCurrent.Store(false)
+}
+
+// Name implements [worker].
+func (ui *UI) Name() string {
+	return "display"
+}
+
+// Run implements [worker].
+func (ui *UI) Run() func() error {
+	return ui.run
+}
+
+func (ui *UI) run() error {
+	d, err := display.Open()
+	if err != nil {
+		return err
+	}
+
+	for _ = range time.Tick(FrameRate) {
+		now := ui.currentStep.Load()
+
+		if now-ui.lastActivityStep.Load() > activityTimeout {
+			// user inactive
+			needBlank := ui.screenBlanked.Swap(true)
+
+			if needBlank {
+				d.Sleep()
+			}
+
+		} else {
+			// user recently active
+			needUnblank := ui.screenBlanked.Swap(false)
+			needRefresh := !ui.screenCurrent.Swap(true)
+
+			if needUnblank || needRefresh {
+				ui.CurrentPage().Render(d, now)
+			}
+		}
+	}
+	return nil
 }

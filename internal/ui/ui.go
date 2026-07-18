@@ -4,10 +4,7 @@ import "gbenson.net/go/picosynth/internal/display"
 
 type Display = display.Display
 
-type System interface {
-	// Display returns the surface for rendering visuals.
-	Display() *Display
-
+type Memory interface {
 	// Load returns the contents of register n.
 	Load(n int) uint32
 

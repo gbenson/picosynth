@@ -100,9 +100,8 @@ func (ps *Engine) Run() error {
 	}
 	defer out.Close()
 
-	const numWorkers = 5 // display, keyscanner, filler, player, ui
+	const numWorkers = 4 // display, keyscanner, filler, player
 	wm := newWorkerManager(numWorkers)
-	wm.Start(&ps.ui.display)
 	wm.Start(&ps.ui.keyscanner)
 	wm.Start(&ps.ui)
 
