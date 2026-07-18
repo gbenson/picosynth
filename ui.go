@@ -255,9 +255,9 @@ func (ui *UI) run() error {
 	return nil
 }
 
-func (ui *UI) onButton(sc Scancode, longPress bool) {
+func (ui *UI) onButton(sc Scancode, longpress bool) {
 	if p := ui.currentPage; p != nil {
-		if p.OnButton(sc, longPress) {
+		if p.OnButton(sc, longpress) {
 			return // handled
 		}
 	}
@@ -266,13 +266,13 @@ func (ui *UI) onButton(sc Scancode, longPress bool) {
 		if p == ui.currentPage {
 			continue
 		}
-		if p.OnButton(sc, longPress) {
+		if p.OnButton(sc, longpress) {
 			ui.currentPage = p
 			return
 		}
 	}
 
-	if longPress {
+	if longpress {
 		println("button", sc, "(long press) ignored")
 	} else {
 		println("button", sc, "(short press) ignored")

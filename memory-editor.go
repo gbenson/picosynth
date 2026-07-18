@@ -22,12 +22,12 @@ func (me *MemoryEditor) OnInit(ui *UI) {
 }
 
 // OnButton implements [Page].
-func (me *MemoryEditor) OnButton(sc Scancode, longPress bool) bool {
+func (me *MemoryEditor) OnButton(sc Scancode, longpress bool) bool {
 	const Hotkey = ButtonToneEdit
 
 	if !me.ui.HasFocus(me) {
 		// only the exact keypress grants focus to an unfocused page.
-		if !longPress || sc != Hotkey {
+		if !longpress || sc != Hotkey {
 			return false
 		}
 
@@ -46,7 +46,7 @@ func (me *MemoryEditor) OnButton(sc Scancode, longPress bool) bool {
 			me.ui.currentPage = nil
 		}
 		return true
-	} else if longPress {
+	} else if longpress {
 		// can leave by long-pressing other buttons, if anything's listening
 		// for the button we're returning false for.
 		return false

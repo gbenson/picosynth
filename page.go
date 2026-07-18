@@ -8,7 +8,7 @@ type Page interface {
 	// OnButton is called whenever a button is released after having
 	// been held down.  Returns true if the event has been handled,
 	// false if processing should continue.
-	OnButton(sc Scancode, longPress bool) bool
+	OnButton(sc Scancode, longpress bool) bool
 
 	// OnEncoder is called whenever the rotary encoder is moved.
 	OnEncoder(delta int)
