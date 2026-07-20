@@ -17,6 +17,12 @@ test: lint generate
 	go test ./...
 
 build: check
+	docker run --rm -it \
+		-v $(shell go env GOPATH):/go \
+		-v $(PWD):/src \
+		--workdir=/src \
+		gbenson/tinygo-dev:20260720 \
+		./docker-entrypoint.sh \
 	tinygo build $(GOFLAGS) -o picosynth.uf2 ./cmd/picosynth
 
 flash: check
