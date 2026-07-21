@@ -3,19 +3,19 @@ package emulator
 import "gbenson.net/go/picosynth/internal/hw"
 
 type KeySwitchMatrix struct {
-	outputs []hw.OutputPin
-	inputs  []hw.InputPin
+	outputs []hw.Pin
+	inputs  []hw.Pin
 
 	energized []bool
 }
 
-func OpenKeySwitchMatrix() (*KeySwitchMatrix, error) {
+func NewKeySwitchMatrix() *KeySwitchMatrix {
 	m := &KeySwitchMatrix{}
 
 	numOutputs, numInputs := keyboard.matrixSize()
 
-	m.outputs = make([]hw.OutputPin, numOutputs)
-	m.inputs = make([]hw.InputPin, numInputs)
+	m.outputs = make([]hw.Pin, numOutputs)
+	m.inputs = make([]hw.Pin, numInputs)
 
 	for i := range numOutputs {
 		m.outputs[i] = &outputPin{m, i}
@@ -26,16 +26,16 @@ func OpenKeySwitchMatrix() (*KeySwitchMatrix, error) {
 
 	m.energized = make([]bool, numOutputs)
 
-	return m, ensureStarted()
+	return m
 }
 
 // Outputs implements [hw.KeySwitchMatrix].
-func (m *KeySwitchMatrix) Outputs() []hw.OutputPin {
+func (m *KeySwitchMatrix) Outputs() []hw.Pin {
 	return m.outputs
 }
 
 // Inputs implements [hw.KeySwitchMatrix].
-func (m *KeySwitchMatrix) Inputs() []hw.InputPin {
+func (m *KeySwitchMatrix) Inputs() []hw.Pin {
 	return m.inputs
 }
 
@@ -65,4 +65,12 @@ func (p *inputPin) Get() bool {
 	}
 
 	return false
+}
+
+func (p *outputPin) Get() bool {
+	panic("not an input")
+}
+
+func (p *inputPin) Set(level bool) {
+	panic("not an output")
 }

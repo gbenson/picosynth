@@ -4,4 +4,8 @@ package keyboard
 
 import "gbenson.net/go/picosynth/internal/hw/emulator"
 
-var open = emulator.OpenKeySwitchMatrix
+func init() {
+	m := emulator.NewKeySwitchMatrix()
+	Matrix.Inputs = m.Inputs()
+	Matrix.Outputs = m.Outputs()
+}

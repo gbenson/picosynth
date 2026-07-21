@@ -29,13 +29,9 @@ func (ks *KeyScanner) run() error {
 	defer close(events)
 	ks.events = events
 
-	kb, err := keyboard.Open()
-	if err != nil {
-		return err
-	}
-
-	rows := kb.Outputs()
-	cols := kb.Inputs()
+	ksm := keyboard.Matrix
+	rows := ksm.Outputs
+	cols := ksm.Inputs
 
 	for _, rp := range rows {
 		rp.Set(false)

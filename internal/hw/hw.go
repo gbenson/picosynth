@@ -12,17 +12,8 @@ type AudioDevice interface {
 	WriteMono(buf []int16) error
 }
 
-type KeySwitchMatrix interface {
-	Outputs() []OutputPin
-	Inputs() []InputPin
-}
-
-type OutputPin interface {
-	Set(bool)
-}
-
-type InputPin interface {
-	Get() bool
+type KeySwitchMatrix struct {
+	Inputs, Outputs []Pin
 }
 
 type QuadratureDevice interface {
