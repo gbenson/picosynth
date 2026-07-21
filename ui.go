@@ -4,9 +4,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gbenson.net/go/picosynth/internal/adc"
 	"gbenson.net/go/picosynth/internal/display"
-	"gbenson.net/go/picosynth/internal/encoder"
 )
 
 const (
@@ -45,18 +43,17 @@ func uiStepCount(d time.Duration) uint32 {
 	return uint32(int64(d) * int64(TickRate) / int64(time.Second))
 }
 
-var potRegisters = []int{
+var adcRegisters = []int{
 	Filt1Cutoff,
 	Filt1Resonance,
+	register3E, // XXX third pot
+	register3F, // XXX temperature
 }
 
 type UI struct {
-	mem *Memory
+	scanner Scanner
+	mem     *Memory
 
-	encoder *encoder.Encoder
-	pots    []adc.ADC
-
-	keyscanner KeyScanner
 	keytracker KeyTracker
 
 	octave int
@@ -64,7 +61,8 @@ type UI struct {
 
 	// currentStep is the step number of the current step.  It's
 	// incremented at the start of every [UI.Step], which at the
-	// current TickRate of 375Hz gives us 132.5 days without wrapping.
+	// current TickRate of 1500Hz gives us a little over 33 days
+	// without wrapping.
 	currentStep atomic.Uint32
 
 	// buttonDownStep is the step numbers of the last steps each
@@ -85,23 +83,11 @@ type UI struct {
 }
 
 func (ui *UI) init(m *Memory) error {
-	ui.mem = m
-
-	enc, err := encoder.Open(0)
-	if err != nil {
+	if err := ui.scanner.init(); err != nil {
 		return err
 	}
-	ui.encoder = enc
 
-	pots := make([]adc.ADC, len(potRegisters))
-	for i := range pots {
-		pot, err := adc.Open(i)
-		if err != nil {
-			return err
-		}
-		pots[i] = pot
-	}
-	ui.pots = pots
+	ui.mem = m
 
 	ui.keytracker.init()
 
@@ -135,41 +121,36 @@ func (ui *UI) Step() {
 	currentStep := ui.currentStep.Add(1)
 
 	var activity bool
-	for e := ui.keyscanner.Poll(); e != NoEvent; e = ui.keyscanner.Poll() {
-		sc := e.Scancode()
-		if note := sc.Note(); note.IsValid() {
-			ui.keytracker.Receive(note, e.Down())
+	for _, e := range ui.scanner.Scan() {
+		switch e.Type() {
+		case EventTypeADC:
+			ui.onADCReading(e.Number(), e.Value())
+			// XXX activity = ...
+		case EventTypeEncoder:
+			ui.onEncoderMove(int(e.Delta()))
 			activity = true
-		} else if e.Down() {
-			ui.onButtonDown(sc, currentStep)
-			// don't register activity, or, if the screen is blanked,
-			// it'll unblank on the buttonDown so the eat-the-key
-			// login in various Page OnButtonPress handles will never
-			// be entered: the screen *won't* be blank on the buttonUp.
-		} else {
-			ui.onButtonUp(sc, currentStep)
-			activity = true
+		case EventTypeKeyDown:
+			sc := e.Scancode()
+			if note := sc.Note(); note.IsValid() {
+				ui.keytracker.Receive(note, true)
+				activity = true
+			} else {
+				ui.onButtonDown(sc, currentStep)
+				// don't register activity, or, if the screen is blanked,
+				// it'll unblank on the buttonDown so the eat-the-key
+				// login in various Page OnButtonPress handles will never
+				// be entered: the screen *won't* be blank on the buttonUp.
+			}
+		case EventTypeKeyUp:
+			sc := e.Scancode()
+			if note := sc.Note(); note.IsValid() {
+				ui.keytracker.Receive(note, false)
+				activity = true
+			} else {
+				ui.onButtonUp(sc, currentStep)
+				activity = true
+			}
 		}
-	}
-
-	if v := ui.encoder.Read(); v != 0 {
-		ui.onEncoderMove(v)
-		activity = true
-	}
-
-	for i := range ui.pots {
-		v := ui.pots[i].Get()
-		r := potRegisters[i]
-		switch r {
-		case Filt1Cutoff:
-			p := Pitch(v)
-			p *= (MaxAudiblePitch - MinAudiblePitch) >> 16
-			p += MinAudiblePitch
-			ui.mem.StorePitch(r, p)
-		default:
-			ui.mem.StoreSignal(r, Signal(v)<<15) // 0xffff -> 0x7fff8000
-		}
-		//activity = true
 	}
 
 	if activity {
@@ -178,6 +159,19 @@ func (ui *UI) Step() {
 
 	ui.keytracker.Step()
 	ui.mem.StorePitch(VoicePitch, ui.keytracker.Note.Pitch())
+}
+
+func (ui *UI) onADCReading(n uint8, v uint16) {
+	r := adcRegisters[n]
+	switch r {
+	case Filt1Cutoff:
+		p := Pitch(v)
+		p *= (MaxAudiblePitch - MinAudiblePitch) >> 16
+		p += MinAudiblePitch
+		ui.mem.StorePitch(r, p)
+	default:
+		ui.mem.StoreSignal(r, Signal(v)<<15) // 0xffff -> 0x7fff8000
+	}
 }
 
 func (ui *UI) onButtonDown(sc Scancode, currentStep uint32) {

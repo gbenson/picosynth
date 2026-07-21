@@ -3,29 +3,9 @@ package picosynth
 import (
 	"slices"
 	"testing"
-	"time"
 
 	"gotest.tools/v3/assert"
 )
-
-func TestConstants(t *testing.T) {
-	assert.Equal(t, SampleRate, 48000)
-	assert.Equal(t, MaxLatency, 10*time.Millisecond)
-
-	// Note we're very close to a step in buffer size; increasing
-	// MaxLatency from 10ms to 10+2/3ms steps to 256-frame buffers.
-	assert.Equal(t, BufferFrames, 128)
-
-	// This is the rate of anything that happens once per Fill:
-	// control surface scanning, voice pitch calculation, etc.
-	assert.Equal(t, TickRate, 375)
-
-	assert.Equal(t, LongPressTimeout, 500*time.Millisecond)
-	assert.Equal(t, longPressTimeout, uint32(187))
-
-	assert.Equal(t, ActivityTimeout, 30*time.Second)
-	assert.Equal(t, activityTimeout, uint32(11250))
-}
 
 func volumeTest(t *testing.T, volume int) (lo, hi int16) {
 	t.Helper()
@@ -80,11 +60,12 @@ func filterTest(t *testing.T, cutADC, resADC uint16) (Frequency, Signal) {
 	ps := &Engine{}
 	assert.NilError(t, ps.init())
 
-	ps.ui.pots[0] = MockADC(cutADC)
-	ps.ui.pots[1] = MockADC(resADC)
+	ps.ui.scanner.adcs[0] = MockADC(cutADC)
+	ps.ui.scanner.adcs[1] = MockADC(resADC)
 
 	buf := make([]int16, 1)
-	assert.NilError(t, ps.Fill(buf))
+	assert.NilError(t, ps.Fill(buf)) // scan cutADC
+	assert.NilError(t, ps.Fill(buf)) // scan resADC
 
 	return ps.filt1.Frequency, ps.filt1.Resonance
 }

@@ -1,45 +1,6 @@
 package picosynth
 
-import (
-	"math/bits"
-	"time"
-
-	"gbenson.net/go/picosynth/internal/audio"
-)
-
-const (
-	SampleRate = 48000
-	MaxLatency = 10 * time.Millisecond
-
-	// Split MaxLatency between scanning keys and playing audio.
-	// Currently maxLatency is *half* of MaxLatency because:
-	//  - The KeyScanner loop takes the first part, the limiting
-	//    case being a key or button changing state the instant
-	//    after being scanned, and a full loop has to complete
-	//    before a KeyEvent will be emitted.
-	//  - The time it takes to play the audio buffer takes up
-	//    the second part, the limiting case being that the first
-	//    sample generated into every buffer has to wait for the
-	//    entire other buffer to play before it will be output.
-	maxLatency = MaxLatency / 2
-
-	// maxBufferFrames is the maximum number of audio frames we can
-	// buffer without exceeding maxLatency.
-	maxBufferFrames = uint(SampleRate * maxLatency / time.Second)
-)
-
-var (
-	// BufferFrames is the size of buffers passed to [Engine.Fill].
-	// The SDL emulator requires this to be a power of two.
-	BufferFrames = 1 << (bits.Len(maxBufferFrames) - 1)
-
-	// TickRate is the rate at which [Engine.Fill] is called.
-	//
-	// By extension this is the rate at which things that happen
-	// once per fill happen: scanning keys and buttons, reading
-	// potentiometer values, etc.
-	TickRate = SampleRate / BufferFrames
-)
+import "gbenson.net/go/picosynth/internal/audio"
 
 type Engine struct {
 	mem Memory
@@ -100,9 +61,8 @@ func (ps *Engine) Run() error {
 	}
 	defer out.Close()
 
-	const numWorkers = 4 // display, keyscanner, filler, player
+	const numWorkers = 3 // filler, player, ui
 	wm := newWorkerManager(numWorkers)
-	wm.Start(&ps.ui.keyscanner)
 	wm.Start(&ps.ui)
 
 	db := newDoubleBuffer[int16](BufferFrames, ps.Fill, out.WriteMono)
