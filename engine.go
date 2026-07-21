@@ -33,12 +33,12 @@ var (
 	// The SDL emulator requires this to be a power of two.
 	BufferFrames = 1 << (bits.Len(maxBufferFrames) - 1)
 
-	// FillRate is the rate at which [Engine.Fill] is called.
+	// TickRate is the rate at which [Engine.Fill] is called.
 	//
 	// By extension this is the rate at which things that happen
 	// once per fill happen: scanning keys and buttons, reading
 	// potentiometer values, etc.
-	FillRate = SampleRate / BufferFrames
+	TickRate = SampleRate / BufferFrames
 )
 
 type Engine struct {

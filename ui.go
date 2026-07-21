@@ -42,7 +42,7 @@ var (
 
 // uiStepCount returns a duration as a number of UI steps.
 func uiStepCount(d time.Duration) uint32 {
-	return uint32(int64(d) * int64(FillRate) / int64(time.Second))
+	return uint32(int64(d) * int64(TickRate) / int64(time.Second))
 }
 
 var potRegisters = []int{
@@ -64,7 +64,7 @@ type UI struct {
 
 	// currentStep is the step number of the current step.  It's
 	// incremented at the start of every [UI.Step], which at the
-	// current FillRate of 375Hz gives us 132.5 days without wrapping.
+	// current TickRate of 375Hz gives us 132.5 days without wrapping.
 	currentStep atomic.Uint32
 
 	// buttonDownStep is the step numbers of the last steps each

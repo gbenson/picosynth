@@ -18,7 +18,7 @@ func TestConstants(t *testing.T) {
 
 	// This is the rate of anything that happens once per Fill:
 	// control surface scanning, voice pitch calculation, etc.
-	assert.Equal(t, FillRate, 375)
+	assert.Equal(t, TickRate, 375)
 
 	assert.Equal(t, LongPressTimeout, 500*time.Millisecond)
 	assert.Equal(t, longPressTimeout, uint32(187))
