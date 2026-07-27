@@ -20,9 +20,7 @@ const (
 type Display struct {
 	bus    drivers.I2C
 	device *ssd1306.Device
-	buffer [bufsiz]byte
 	buf    []byte
-	page2  []byte // scratch space
 
 	sleeping atomic.Bool
 }
@@ -30,9 +28,6 @@ type Display struct {
 // Open opens the display.
 func Open() (*Display, error) {
 	d := &Display{}
-
-	d.buf = d.buffer[:]
-	d.page2 = d.buf[Width : Width*2]
 
 	if bus, err := openBus(); err != nil {
 		return nil, err
@@ -46,6 +41,8 @@ func Open() (*Display, error) {
 		Height:  Height,
 		Address: Address,
 	})
+
+	d.buf = d.device.GetBuffer()
 
 	return d, nil
 }
@@ -69,17 +66,9 @@ func (d *Display) Sync() {
 	if d.sleeping.Swap(false) {
 		d.device.Command(ssd1306.DISPLAYON)
 	}
-	if err := d.sync(); err != nil {
+	if err := d.device.Display(); err != nil {
 		println("d.sync:error:", err)
 	}
-}
-
-// sync updates the display with any changes since its last call.
-func (d *Display) sync() error {
-	if err := d.device.SetBuffer(d.buf); err != nil {
-		return err
-	}
-	return d.device.Display()
 }
 
 // Clear clears the buffer.  Clear is asynchronous, requiring a call
@@ -118,16 +107,14 @@ func (d *Display) Text(s string) {
 	dst := d.buf
 	width := microfont.Render(dst, s)
 	if width == 0 {
-		for i := range dst {
-			dst[i] = 0
-		}
+		d.Clear()
 		return
 	}
 
 	// pass 2: horizontal expansion, using the second page of the
 	// buffer as scratch space.
 	src := dst
-	dst = d.page2
+	dst = dst[Width : Width*2]
 
 	// bresenham
 	dx := Width // of display
