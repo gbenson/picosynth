@@ -18,7 +18,6 @@ const (
 
 type Display struct {
 	device *ssd1306.Device
-	buffer [bufsiz]byte
 	buf    []byte
 	page2  []byte // scratch space
 
@@ -28,9 +27,6 @@ type Display struct {
 // Open opens the display.
 func Open() (*Display, error) {
 	d := &Display{}
-
-	d.buf = d.buffer[:]
-	d.page2 = d.buf[Width : Width*2]
 
 	bus, err := openBus()
 	if err != nil {
@@ -43,6 +39,9 @@ func Open() (*Display, error) {
 		Height:  Height,
 		Address: Address,
 	})
+
+	d.buf = d.device.GetBuffer()
+	d.page2 = d.buf[Width : Width*2]
 
 	return d, nil
 }
@@ -73,9 +72,6 @@ func (d *Display) Sync() {
 
 // sync updates the display with any changes since its last call.
 func (d *Display) sync() error {
-	if err := d.device.SetBuffer(d.buf); err != nil {
-		return err
-	}
 	return d.device.Display()
 }
 
