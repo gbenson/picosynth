@@ -52,16 +52,15 @@ func (d *Display) Sleeping() bool {
 	return d.sleeping.Load()
 }
 
-// Sleep turns off the display. Sending any other immediate-effect
-// command afterward turns it back on again.  Sleep has immediate
-// effect, it does not require a call to [Sync].
+// Sleep turns off the display until the next [Sync].
 func (d *Display) Sleep() {
 	if !d.sleeping.Swap(true) {
 		d.device.Command(ssd1306.DISPLAYOFF)
 	}
 }
 
-// Sync updates the display with any changes since its last call.
+// Sync updates the display with any rendering performed since the
+// previous call.  If the display was sleeping, Sync will wake it.
 func (d *Display) Sync() {
 	if d.sleeping.Swap(false) {
 		d.device.Command(ssd1306.DISPLAYON)
@@ -71,8 +70,7 @@ func (d *Display) Sync() {
 	}
 }
 
-// Clear clears the buffer.  Clear is asynchronous, requiring a call
-// to [Sync] to have visible effect.
+// Clear clears the display buffer.
 func (d *Display) Clear() {
 	dst := d.buf
 	for i := range dst {
@@ -80,8 +78,7 @@ func (d *Display) Clear() {
 	}
 }
 
-// Box draws a filled rectangle.  Box is asynchronous, requiring a
-// call to [Sync] to have visible effect.
+// Box draws a filled rectangle.
 func (d *Display) Box(x, y, w, h int32) {
 	dst := d.buf
 
@@ -100,8 +97,6 @@ func (d *Display) Box(x, y, w, h int32) {
 }
 
 // Text displays the given text, expanded to fill the entire screen.
-// Text is asynchronous, requiring a call to [Sync] to have visible
-// effect.
 func (d *Display) Text(s string) {
 	// pass 1: unpack glyphs into the first page of the buffer.
 	dst := d.buf
@@ -158,8 +153,7 @@ func (d *Display) Text(s string) {
 }
 
 // TextAt displays the given text with its top left corner at x, y,
-// roughly h pixels high. TextAt is asynchronous, requiring a call
-// to [Sync] to have visible effect.
+// roughly h pixels high.
 func (d *Display) TextAt(x, y, h int32, s string) {
 	dst := d.buf[(y/8)*Width+x:]
 	width := microfont.Render(dst, s)
