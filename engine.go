@@ -87,6 +87,17 @@ func (ps *Engine) Fill(buf []int16) error {
 	}
 
 	for i := range buf {
+		if i&15 == 0 {
+			// This yields the processor when i==0: this is expected.
+			// When len(buf) == 32, for example, we yield as follows:
+			//  - per-Fill operations ([UI.Step] etc)
+			//  - yield processor
+			//  - generate 16 audio frames
+			//  - yield processor
+			//  - generate 16 audio frames
+			//  - return (no yield here)
+			gosched()
+		}
 		ps.mem.Step()
 
 		ps.lfo1.Step()
