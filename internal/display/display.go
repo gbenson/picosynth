@@ -3,7 +3,6 @@ package display
 import (
 	"sync/atomic"
 
-	"tinygo.org/x/drivers"
 	"tinygo.org/x/drivers/ssd1306"
 
 	"gbenson.net/go/picosynth/internal/microfont"
@@ -18,7 +17,6 @@ const (
 )
 
 type Display struct {
-	bus    drivers.I2C
 	device *ssd1306.Device
 	buf    []byte
 
@@ -29,13 +27,12 @@ type Display struct {
 func Open() (*Display, error) {
 	d := &Display{}
 
-	if bus, err := openBus(); err != nil {
+	bus, err := openBus()
+	if err != nil {
 		return nil, err
-	} else {
-		d.bus = bus
 	}
 
-	d.device = ssd1306.NewI2C(d.bus)
+	d.device = ssd1306.NewI2C(&I2C{bus})
 	d.device.Configure(ssd1306.Config{
 		Width:   Width,
 		Height:  Height,
