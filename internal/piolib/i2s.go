@@ -65,6 +65,11 @@ func NewI2S(sm pio.StateMachine, data, clockAndNext machine.Pin) (*I2S, error) {
 	cfg.SetSidesetPins(clockAndNext)
 	cfg.SetOutShift(false, true, 32)
 
+	// Join the RX and TX FIFOs into a single TX FIFO of depth 8.
+	// This will likely need removing if reads get implemented,
+	// but it's just an optimization, it shouldn't break anything.
+	cfg.SetFIFOJoin(pio.FifoJoinTx)
+
 	sm.Init(offset, cfg)
 
 	pinMask := uint32(1<<data) | uint32(0b11<<clockAndNext)
@@ -106,11 +111,17 @@ func (i2s *I2S) WriteStereo(b []uint32) (int, error) {
 
 // ReadMono reads a mono audio buffer from the I2S peripheral.
 func (i2s *I2S) ReadMono(p []uint16) (n int, err error) {
+	// You probably need to remove the cfg.SetFIFOJoin in NewI2S if
+	// you're implementing reading or you won't have a FIFO to read
+	// into.
 	return 0, errors.ErrUnsupported
 }
 
 // ReadStereo reads a stereo audio buffer from the I2S peripheral.
 func (i2s *I2S) ReadStereo(p []uint32) (n int, err error) {
+	// You probably need to remove the cfg.SetFIFOJoin in NewI2S if
+	// you're implementing reading or you won't have a FIFO to read
+	// into.
 	return 0, errors.ErrUnsupported
 }
 
