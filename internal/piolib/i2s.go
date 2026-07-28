@@ -12,9 +12,8 @@ import (
 // I2S is a wrapper around a PIO state machine that implements I2S.
 // Currently only supports writing to the I2S peripheral.
 type I2S struct {
-	sm      pio.StateMachine
-	offset  uint8
-	writing bool
+	sm     pio.StateMachine
+	offset uint8
 }
 
 // NewI2S creates a new I2S peripheral using the given PIO state machine.
@@ -119,22 +118,15 @@ func i2sWrite[T uint16 | uint32](i2s *I2S, b []T) (int, error) {
 	if len(b) == 0 {
 		return 0, nil
 	}
-	if i2s.writing {
-		return 0, errBusy
-	}
-	i2s.writing = true
 	i := 0
 	for i < len(b) {
 		if i2s.sm.IsTxFIFOFull() {
 			gosched()
 			continue
-		} else if !i2s.writing {
-			return i, nil
 		}
 		i2s.sm.TxPut(uint32(b[i]))
 		i++
 	}
-	i2s.writing = false
 	return len(b), nil
 }
 

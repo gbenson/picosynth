@@ -1,11 +1,6 @@
 package piolib
 
-import (
-	"errors"
-	"runtime"
-)
-
-var errBusy = errors.New("piolib:busy")
+import "runtime"
 
 func gosched() {
 	runtime.Gosched()
