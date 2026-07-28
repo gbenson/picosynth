@@ -5,24 +5,43 @@ package encoder
 import (
 	"machine"
 
-	"tinygo.org/x/drivers/encoders"
+	"gbenson.net/go/picosynth/internal/piolib"
+	pio "github.com/tinygo-org/pio/rp2-pio"
 )
 
 var pinss = [][]machine.Pin{
 	[]machine.Pin{machine.GP0, machine.GP1},
 }
 
-func open(n int) (*encoders.QuadratureDevice, error) {
+func open(n int) (*piolib.QuadratureDevice, error) {
 	if n < 0 || n >= len(pinss) {
 		panic("invalid encoder")
 	}
-
 	pins := pinss[n]
-	qd := encoders.NewQuadratureViaInterrupt(pins[0], pins[1])
 
-	qd.Configure(encoders.QuadratureConfig{
-		Precision: 4,
-	})
+	// I2S is on PIO0, idk if they'd clash but there's two PIOs so...
+	sm, err := pio.PIO1.ClaimStateMachine()
+	if err != nil {
+		return nil, err
+	}
+
+	// We set PinMode machine.PinInputPullup here even though
+	// NewQuadratureDevice is going to set PinMode machine.PinPIOx.
+	// Why?  Because machine.PinMode combines function and pull, and
+	// while there isn't a PinMode to setFunc(PIOx) _and_ set a pull,
+	// setting PinMode machine.PinPIOx won't change whatever pull is
+	// configured, so we set machine.PinInputPullup to get the pull
+	// up we want, then let NewQuadratureDevice set the function it
+	// wants.
+	for _, pin := range pins {
+		pin.Configure(machine.PinConfig{Mode: machine.PinInputPullup})
+	}
+
+	qd, err := piolib.NewQuadratureDevice(sm, pins[0], pins[1])
+	if err != nil {
+		defer sm.Unclaim()
+		return nil, err
+	}
 
 	return qd, nil
 }
