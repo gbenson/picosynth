@@ -5,8 +5,8 @@ package encoder
 import (
 	"machine"
 
+	"gbenson.net/go/picosynth/internal/pio"
 	"gbenson.net/go/picosynth/internal/piolib"
-	pio "github.com/tinygo-org/pio/rp2-pio"
 )
 
 var pinss = [][]machine.Pin{

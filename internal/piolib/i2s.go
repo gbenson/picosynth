@@ -7,7 +7,7 @@ import (
 	"machine"
 	"time"
 
-	pio "github.com/tinygo-org/pio/rp2-pio"
+	"gbenson.net/go/picosynth/internal/pio"
 )
 
 // I2S is a wrapper around a PIO state machine that implements I2S.

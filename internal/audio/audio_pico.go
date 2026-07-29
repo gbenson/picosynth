@@ -6,8 +6,8 @@ import (
 	"machine"
 	"unsafe"
 
+	"gbenson.net/go/picosynth/internal/pio"
 	"gbenson.net/go/picosynth/internal/piolib"
-	pio "github.com/tinygo-org/pio/rp2-pio"
 )
 
 const (

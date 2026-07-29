@@ -7,7 +7,7 @@ import (
 	"machine"
 	"math/bits"
 
-	pio "github.com/tinygo-org/pio/rp2-pio"
+	"gbenson.net/go/picosynth/internal/pio"
 )
 
 // QuadratureDevice is a wrapper around a PIO state machine that
