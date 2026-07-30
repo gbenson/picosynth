@@ -5,6 +5,7 @@ package pio
 import (
 	"device/rp"
 	"errors"
+	"fmt"
 	"machine"
 	"math/bits"
 	"runtime/interrupt"
@@ -128,6 +129,9 @@ func (pio *PIO) CanAddProgramAtOffset(instructions []uint16, origin int8, offset
 }
 
 func (pio *PIO) writeInstructionMemory(offset uint8, value uint16) {
+	fmt.Printf("writeInstructionMemory: PIO%d 0x%02x 0x%04x\r\n",
+		pio.blockIndex(), offset, value)
+
 	// Instead of using MEM0, MEM1, etc, calculate the offset of the
 	// disired register starting at MEM0
 	start := unsafe.Pointer(&pio.hw.INSTR_MEM0)

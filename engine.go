@@ -90,6 +90,8 @@ func (ps *Engine) Reset() {
 
 // Run is the main entry point of the firmware.
 func (ps *Engine) Run() error {
+	time.Sleep(2 * time.Second)
+
 	if err := ps.init(); err != nil {
 		return err
 	}
