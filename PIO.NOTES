@@ -1,10 +1,31 @@
+# encoder origin=0 => workd
+
 writeInstructionMemory: PIO1 0x00 0x4002
 writeInstructionMemory: PIO1 0x01 0xa026
-writeInstructionMemory: PIO1 0x02 0x00a5
+writeInstructionMemory: PIO1 0x02 0x00a5 <=
 writeInstructionMemory: PIO1 0x03 0xa0c3
-writeInstructionMemory: PIO1 0x04 0x0000
+writeInstructionMemory: PIO1 0x04 0x0000 <=
 writeInstructionMemory: PIO1 0x05 0x8020
 writeInstructionMemory: PIO1 0x06 0xa041
+
+writeInstructionMemory: PIO0 0x18 0x7001
+writeInstructionMemory: PIO0 0x19 0x1858
+writeInstructionMemory: PIO0 0x1a 0x6001
+writeInstructionMemory: PIO0 0x1b 0xe82e
+writeInstructionMemory: PIO0 0x1c 0x6001
+writeInstructionMemory: PIO0 0x1d 0x085c
+writeInstructionMemory: PIO0 0x1e 0x7001
+writeInstructionMemory: PIO0 0x1f 0xf82e
+
+# encoder origin=-1 => doesn't work!
+
+writeInstructionMemory: PIO1 0x19 0x4002
+writeInstructionMemory: PIO1 0x1a 0xa026
+writeInstructionMemory: PIO1 0x1b 0x00be <=
+writeInstructionMemory: PIO1 0x1c 0xa0c3
+writeInstructionMemory: PIO1 0x1d 0x0019 <=
+writeInstructionMemory: PIO1 0x1e 0x8020
+writeInstructionMemory: PIO1 0x1f 0xa041
 
 writeInstructionMemory: PIO0 0x18 0x7001
 writeInstructionMemory: PIO0 0x19 0x1858
