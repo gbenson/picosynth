@@ -15,3 +15,5 @@ require (
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	golang.org/x/image v0.38.0 // indirect
 )
+
+retract v0.8.1
