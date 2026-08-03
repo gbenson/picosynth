@@ -52,6 +52,7 @@ var potRegisters = []int{
 
 // Picosynth is a replacement brain for Casio SA-5 keyboards.
 type Picosynth struct {
+	ui  UI
 	mem *Memory
 
 	encoder *encoder.Encoder
@@ -85,14 +86,15 @@ type Picosynth struct {
 	defaultPage Page
 }
 
-func (ui *Picosynth) init(m *Memory) error {
-	ui.mem = m
+func (ps *Picosynth) init(m *Memory) error {
+	ps.ui = &psUI{ps}
+	ps.mem = m
 
 	enc, err := encoder.Open(0)
 	if err != nil {
 		return err
 	}
-	ui.encoder = enc
+	ps.encoder = enc
 
 	pots := make([]adc.ADC, len(potRegisters))
 	for i := range pots {
@@ -102,132 +104,132 @@ func (ui *Picosynth) init(m *Memory) error {
 		}
 		pots[i] = pot
 	}
-	ui.pots = pots
+	ps.pots = pots
 
-	ui.keytracker.init()
+	ps.keytracker.init()
 
-	ui.SetOctave(InitialOctave)
-	ui.SetVolume(InitialVolume)
+	ps.SetOctave(InitialOctave)
+	ps.SetVolume(InitialVolume)
 
-	ui.AddPage(&ui.visualizer)
-	ui.AddPage(&MemoryEditor{})
+	ps.AddPage(&ps.visualizer)
+	ps.AddPage(&MemoryEditor{})
 	for _, pg := range ParameterGroups {
-		ui.AddPage(NewParameterGroupPage(pg))
+		ps.AddPage(NewParameterGroupPage(pg))
 	}
 
-	if ui.CurrentPage() == nil {
+	if ps.CurrentPage() == nil {
 		panic("no pages")
 	}
 
 	return nil
 }
 
-func (ui *Picosynth) AddPage(p Page) {
-	p.OnInit(ui)
-	ui.pages = append(ui.pages, p)
+func (ps *Picosynth) AddPage(p Page) {
+	p.OnInit(ps.ui, ps.mem)
+	ps.pages = append(ps.pages, p)
 
-	if ui.defaultPage == nil {
-		ui.defaultPage = p
-		ui.focus(p)
+	if ps.defaultPage == nil {
+		ps.defaultPage = p
+		ps.focus(p)
 	}
 }
 
-func (ui *Picosynth) Step() {
-	currentStep := ui.currentStep.Add(1)
+func (ps *Picosynth) Step() {
+	currentStep := ps.currentStep.Add(1)
 
 	var activity bool
-	for e := ui.keyscanner.Poll(); e != NoEvent; e = ui.keyscanner.Poll() {
+	for e := ps.keyscanner.Poll(); e != NoEvent; e = ps.keyscanner.Poll() {
 		sc := e.Scancode()
 		if note := sc.Note(); note.IsValid() {
-			ui.keytracker.Receive(note, e.Down())
+			ps.keytracker.Receive(note, e.Down())
 			activity = true
 		} else if e.Down() {
-			ui.onButtonDown(sc, currentStep)
+			ps.onButtonDown(sc, currentStep)
 			// don't register activity, or, if the screen is blanked,
 			// it'll unblank on the buttonDown so the eat-the-key
 			// login in various Page OnButtonPress handles will never
 			// be entered: the screen *won't* be blank on the buttonUp.
 		} else {
-			ui.onButtonUp(sc, currentStep)
+			ps.onButtonUp(sc, currentStep)
 			activity = true
 		}
 	}
 
-	if v := ui.encoder.Read(); v != 0 {
-		ui.onEncoderMove(v)
+	if v := ps.encoder.Read(); v != 0 {
+		ps.onEncoderMove(v)
 		activity = true
 	}
 
-	for i := range ui.pots {
-		v := ui.pots[i].Get()
+	for i := range ps.pots {
+		v := ps.pots[i].Get()
 		r := potRegisters[i]
 		switch r {
 		case Filt1Cutoff:
 			p := Pitch(v)
 			p *= (MaxAudiblePitch - MinAudiblePitch) >> 16
 			p += MinAudiblePitch
-			ui.mem.StorePitch(r, p)
+			ps.mem.StorePitch(r, p)
 		default:
-			ui.mem.StoreSignal(r, Signal(v)<<15) // 0xffff -> 0x7fff8000
+			ps.mem.StoreSignal(r, Signal(v)<<15) // 0xffff -> 0x7fff8000
 		}
 		//activity = true
 	}
 
 	if activity {
-		ui.lastActivityStep.Store(currentStep)
+		ps.lastActivityStep.Store(currentStep)
 	}
 
-	ui.keytracker.Step()
-	ui.mem.StorePitch(VoicePitch, ui.keytracker.Note.Pitch())
+	ps.keytracker.Step()
+	ps.mem.StorePitch(VoicePitch, ps.keytracker.Note.Pitch())
 }
 
-func (ui *Picosynth) onButtonDown(sc Scancode, currentStep uint32) {
-	ui.buttonDownStep[sc] = currentStep
+func (ps *Picosynth) onButtonDown(sc Scancode, currentStep uint32) {
+	ps.buttonDownStep[sc] = currentStep
 }
 
-func (ui *Picosynth) onButtonUp(sc Scancode, currentStep uint32) {
-	holdTime := currentStep - ui.buttonDownStep[sc]
+func (ps *Picosynth) onButtonUp(sc Scancode, currentStep uint32) {
+	holdTime := currentStep - ps.buttonDownStep[sc]
 	if holdTime > longPressTimeout {
-		ui.onButtonPress(sc, true)
+		ps.onButtonPress(sc, true)
 		return
 	}
 
 	switch sc {
 	case ButtonVolumeUp:
-		ui.SetVolume(ui.volume + 1)
+		ps.SetVolume(ps.volume + 1)
 	case ButtonVolumeDown:
-		ui.SetVolume(ui.volume - 1)
+		ps.SetVolume(ps.volume - 1)
 	case ButtonTempoUp:
-		ui.SetOctave(ui.octave + 1)
+		ps.SetOctave(ps.octave + 1)
 	case ButtonTempoDown:
-		ui.SetOctave(ui.octave - 1)
+		ps.SetOctave(ps.octave - 1)
 	default:
-		ui.onButtonPress(sc, false)
+		ps.onButtonPress(sc, false)
 	}
 }
 
-func (ui *Picosynth) SetOctave(v int) {
-	ui.octave = max(MinOctave, min(MaxOctave, v))
-	ui.keytracker.Transpose = ui.octave * 12
+func (ps *Picosynth) SetOctave(v int) {
+	ps.octave = max(MinOctave, min(MaxOctave, v))
+	ps.keytracker.Transpose = ps.octave * 12
 }
 
-func (ui *Picosynth) SetVolume(v int) {
-	ui.volume = max(MinVolume, min(MaxVolume, v))
+func (ps *Picosynth) SetVolume(v int) {
+	ps.volume = max(MinVolume, min(MaxVolume, v))
 }
 
-func (ui *Picosynth) onButtonPress(sc Scancode, longpress bool) {
-	currentPage := ui.CurrentPage()
+func (ps *Picosynth) onButtonPress(sc Scancode, longpress bool) {
+	currentPage := ps.CurrentPage()
 
-	if currentPage.OnButtonPress(ui, sc, longpress) {
+	if currentPage.OnButtonPress(sc, longpress) {
 		return // handled
 	}
 
-	for _, p := range ui.pages {
+	for _, p := range ps.pages {
 		if p == currentPage {
 			continue // currentPage had its turn
 		}
-		if p.OnButtonPress(ui, sc, longpress) {
-			ui.focus(p)
+		if p.OnButtonPress(sc, longpress) {
+			ps.focus(p)
 			return
 		}
 	}
@@ -239,40 +241,56 @@ func (ui *Picosynth) onButtonPress(sc Scancode, longpress bool) {
 	}
 }
 
-func (ui *Picosynth) onEncoderMove(delta int) {
-	ui.CurrentPage().OnEncoderMove(ui, delta)
+func (ps *Picosynth) onEncoderMove(delta int) {
+	ps.CurrentPage().OnEncoderMove(delta)
 }
 
 // CurrentPage returns the currently displayed page.
-func (ui *Picosynth) CurrentPage() Page {
-	return *ui.currentPage.Load()
+func (ps *Picosynth) CurrentPage() Page {
+	return *ps.currentPage.Load()
 }
 
-func (ui *Picosynth) PageHasFocus(p Page) bool {
-	return ui.CurrentPage() == p
-}
-
-func (ui *Picosynth) YieldFocus() {
-	ui.focus(ui.defaultPage)
-}
-
-func (ui *Picosynth) focus(p Page) {
-	if p == nil {
-		panic("nil page")
-	}
-	ui.currentPage.Store(&p)
-	p.OnFocus(ui)
-	ui.InvalidateDisplay()
+// PageHasFocus reports whether p has focus.
+func (ps *Picosynth) PageHasFocus(p Page) bool {
+	return ps.CurrentPage() == p
 }
 
 // ScreenBlanked reports whether the screen is blanked.
-func (ui *Picosynth) ScreenBlanked() bool {
-	return ui.screenBlanked.Load()
+func (ps *Picosynth) ScreenBlanked() bool {
+	return ps.screenBlanked.Load()
 }
 
-// InvalidateDisplay requests a redraw at the next refresh.
-func (ui *Picosynth) InvalidateDisplay() {
-	ui.screenCurrent.Store(false)
+type psUI struct {
+	ps *Picosynth
+}
+
+// PageHasFocus implements [UI].
+func (ui *psUI) PageHasFocus(p Page) bool {
+	return ui.ps.PageHasFocus(p)
+}
+
+// YieldFocus implements [UI].
+func (ui *psUI) YieldFocus() {
+	ui.ps.focus(ui.ps.defaultPage)
+}
+
+func (ps *Picosynth) focus(p Page) {
+	if p == nil {
+		panic("nil page")
+	}
+	ps.currentPage.Store(&p)
+	p.OnFocus()
+	ps.ui.InvalidateDisplay()
+}
+
+// InvalidateDisplay implements [UI].
+func (ui *psUI) InvalidateDisplay() {
+	ui.ps.screenCurrent.Store(false)
+}
+
+// ScreenBlanked implements [UI].
+func (ui *psUI) ScreenBlanked() bool {
+	return ui.ps.ScreenBlanked()
 }
 
 // Name implements [worker].

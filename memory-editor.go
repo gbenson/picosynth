@@ -14,6 +14,9 @@ import (
 // That's why it's total spaghetti!
 
 type MemoryEditor struct {
+	ui  UI
+	mem *Memory
+
 	// Register and byte cursors
 	register int
 	selected int // byte 0..3, or -1 for none
@@ -22,22 +25,26 @@ type MemoryEditor struct {
 }
 
 // OnInit implements [Page].
-func (me *MemoryEditor) OnInit(ui *Picosynth) {
+func (me *MemoryEditor) OnInit(ui UI, mem *Memory) {
+	me.ui = ui
+	me.mem = mem
+
 	// Advance to the first named editable register.
-	me.navigate(ui, 0)
+	me.navigate(0)
 
 	// Be selecting a register, not editing a byte.
 	me.selected = -1
 }
 
 // OnFocus implements [Page].
-func (me *MemoryEditor) OnFocus(ui *Picosynth) {
-	me.value.Store(ui.mem.load(me.register))
+func (me *MemoryEditor) OnFocus() {
+	me.value.Store(me.mem.load(me.register))
 }
 
 // OnButtonPress implements [Page].
-func (me *MemoryEditor) OnButtonPress(ui *Picosynth, sc Scancode, longpress bool) bool {
+func (me *MemoryEditor) OnButtonPress(sc Scancode, longpress bool) bool {
 	const Hotkey = ButtonToneEdit
+	ui := me.ui
 
 	if longpress {
 		return false
@@ -55,15 +62,15 @@ func (me *MemoryEditor) OnButtonPress(ui *Picosynth, sc Scancode, longpress bool
 
 	switch sc {
 	case ButtonKeyboard:
-		me.onDecreaseMulti(ui)
+		me.onDecreaseMulti()
 	case ButtonWind:
-		me.onIncreaseMulti(ui)
+		me.onIncreaseMulti()
 	case ButtonString:
-		me.onCycle(ui)
+		me.onCycle()
 	case ButtonSynth:
-		me.onDecrease(ui)
+		me.onDecrease()
 	case ButtonSE:
-		me.onIncrease(ui)
+		me.onIncrease()
 	default:
 		return false
 	}
@@ -72,11 +79,11 @@ func (me *MemoryEditor) OnButtonPress(ui *Picosynth, sc Scancode, longpress bool
 }
 
 // OnEncoderMove implements [Page].
-func (me *MemoryEditor) OnEncoderMove(ui *Picosynth, delta int) {
-	me.onChange(ui, delta, false)
+func (me *MemoryEditor) OnEncoderMove(delta int) {
+	me.onChange(delta, false)
 }
 
-func (me *MemoryEditor) onCycle(ui *Picosynth) {
+func (me *MemoryEditor) onCycle() {
 	if me.selected < 0 {
 		// switch from moving through registers to editing the first byte
 		me.selected = 0
@@ -87,32 +94,32 @@ func (me *MemoryEditor) onCycle(ui *Picosynth) {
 			me.selected -= 1
 		}
 	}
-	me.invalidateDisplay(ui)
+	me.invalidateDisplay()
 }
 
-func (me *MemoryEditor) onDecrease(ui *Picosynth) {
-	me.onChange(ui, -1, false)
+func (me *MemoryEditor) onDecrease() {
+	me.onChange(-1, false)
 }
 
-func (me *MemoryEditor) onIncrease(ui *Picosynth) {
-	me.onChange(ui, +1, false)
+func (me *MemoryEditor) onIncrease() {
+	me.onChange(+1, false)
 }
 
-func (me *MemoryEditor) onDecreaseMulti(ui *Picosynth) {
-	me.onChange(ui, -1, true)
+func (me *MemoryEditor) onDecreaseMulti() {
+	me.onChange(-1, true)
 }
 
-func (me *MemoryEditor) onIncreaseMulti(ui *Picosynth) {
-	me.onChange(ui, +1, true)
+func (me *MemoryEditor) onIncreaseMulti() {
+	me.onChange(+1, true)
 }
 
-func (me *MemoryEditor) onChange(ui *Picosynth, step int, multi bool) {
+func (me *MemoryEditor) onChange(step int, multi bool) {
 	if me.selected < 0 {
 		// moving through registers
 		if multi {
 			step *= 10
 		}
-		me.navigate(ui, step)
+		me.navigate(step)
 	} else {
 		// adjusting a value
 		mask := uint32(15)
@@ -120,14 +127,14 @@ func (me *MemoryEditor) onChange(ui *Picosynth, step int, multi bool) {
 			step <<= 4
 			mask <<= 4
 		}
-		me.adjust(ui.mem, uint32(step), mask)
+		me.adjust(me.mem, uint32(step), mask)
 	}
-	me.invalidateDisplay(ui)
+	me.invalidateDisplay()
 }
 
 // nagivate moves up and down the list of named editable registers by
 // the given number amount.
-func (me *MemoryEditor) navigate(ui *Picosynth, steps int) {
+func (me *MemoryEditor) navigate(steps int) {
 	step := 1
 	if steps < 0 {
 		step = -1
@@ -135,7 +142,7 @@ func (me *MemoryEditor) navigate(ui *Picosynth, steps int) {
 	}
 
 	for _ = range NumRegisters {
-		r := ui.mem.Register(me.register)
+		r := me.mem.Register(me.register)
 		if r.Assigned() && r.Editable() {
 			if steps == 0 {
 				return
@@ -161,9 +168,9 @@ func (me *MemoryEditor) adjust(mem *Memory, delta, mask uint32) {
 	mem.Store(me.register, (v & ^mask)|((v+delta)&mask))
 }
 
-func (me *MemoryEditor) invalidateDisplay(ui *Picosynth) {
-	me.OnFocus(ui) // update me.value
-	ui.InvalidateDisplay()
+func (me *MemoryEditor) invalidateDisplay() {
+	me.OnFocus() // update me.value
+	me.ui.InvalidateDisplay()
 }
 
 // Render implements [Page].

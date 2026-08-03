@@ -23,7 +23,8 @@ type ParameterGroup struct {
 type ParameterGroupPage struct {
 	ParameterGroup
 
-	ui       *Picosynth
+	ui       UI
+	mem      *Memory
 	params   []Parameter
 	selected atomic.Uint32
 }
@@ -39,10 +40,13 @@ func (pg *ParameterGroupPage) SelectedParameter() Parameter {
 }
 
 // OnInit implements [Page].
-func (pg *ParameterGroupPage) OnInit(ui *Picosynth) {
+func (pg *ParameterGroupPage) OnInit(ui UI, mem *Memory) {
 	if len(pg.Parameters) < 1 {
 		panic("no parameters")
 	}
+
+	pg.ui = ui
+	pg.mem = mem
 
 	pg.params = make([]Parameter, len(pg.Parameters))
 	for i, ps := range pg.Parameters {
@@ -51,15 +55,16 @@ func (pg *ParameterGroupPage) OnInit(ui *Picosynth) {
 }
 
 // OnFocus implements [Page].
-func (pg *ParameterGroupPage) OnFocus(ui *Picosynth) {
-	pg.SelectedParameter().Focus(ui.mem)
+func (pg *ParameterGroupPage) OnFocus() {
+	pg.SelectedParameter().Focus(pg.mem)
 }
 
 // OnButtonPress implements [Page].
-func (pg *ParameterGroupPage) OnButtonPress(ui *Picosynth, sc Scancode, longpress bool) bool {
+func (pg *ParameterGroupPage) OnButtonPress(sc Scancode, longpress bool) bool {
 	if sc != pg.Hotkey {
 		return false
 	}
+	ui := pg.ui
 
 	if !ui.PageHasFocus(pg) {
 		// only the exact press grants focus to an unfocused page.
@@ -87,7 +92,10 @@ func (pg *ParameterGroupPage) OnButtonPress(ui *Picosynth, sc Scancode, longpres
 		// press page for the same hotkey. We fake a short press to
 		// make the switch.
 		ui.YieldFocus()
-		ui.onButtonPress(sc, false)
+		if impl, ok := ui.(*psUI); ok {
+			// XXX how to do this nicely?
+			impl.ps.onButtonPress(sc, false)
+		}
 		return true
 
 	} else {
@@ -103,7 +111,7 @@ func (pg *ParameterGroupPage) OnButtonPress(ui *Picosynth, sc Scancode, longpres
 		}
 		pg.selected.Store(selected)
 
-		pg.OnFocus(ui)
+		pg.OnFocus()
 		ui.InvalidateDisplay()
 
 		return true
@@ -111,9 +119,9 @@ func (pg *ParameterGroupPage) OnButtonPress(ui *Picosynth, sc Scancode, longpres
 }
 
 // OnEncoderMove implements [Page].
-func (pg *ParameterGroupPage) OnEncoderMove(ui *Picosynth, delta int) {
-	pg.SelectedParameter().Adjust(ui.mem, int32(delta))
-	ui.InvalidateDisplay()
+func (pg *ParameterGroupPage) OnEncoderMove(delta int) {
+	pg.SelectedParameter().Adjust(pg.mem, int32(delta))
+	pg.ui.InvalidateDisplay()
 }
 
 // Render implements [Page].
