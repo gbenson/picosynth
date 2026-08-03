@@ -30,14 +30,14 @@ func TestConstants(t *testing.T) {
 func volumeTest(t *testing.T, volume int) (lo, hi int16) {
 	t.Helper()
 
-	ps := &Engine{}
-	assert.NilError(t, ps.init())
-	ps.ui.SetVolume(volume)
-	ps.ui.keytracker.notes[127] = Note(127)
-	ps.mem.Store(Filt1Mode, uint32(FilterNoFilter))
+	ps := &Picosynth{}
+	assert.NilError(t, ps.Init())
+	ps.SetVolume(volume)
+	ps.keytracker.notes[127] = Note(127)
+	ps.Engine.Memory.Store(Filt1Mode, uint32(FilterNoFilter))
 
 	buf := make([]int16, 128)
-	assert.NilError(t, ps.Fill(buf))
+	assert.NilError(t, ps.fill(buf))
 
 	return slices.Min(buf), slices.Max(buf)
 }
@@ -77,16 +77,16 @@ func (a MockADC) Get() uint16 {
 func filterTest(t *testing.T, cutADC, resADC uint16) (Frequency, Signal) {
 	t.Helper()
 
-	ps := &Engine{}
-	assert.NilError(t, ps.init())
+	ps := &Picosynth{}
+	assert.NilError(t, ps.Init())
 
-	ps.ui.pots[0] = MockADC(cutADC)
-	ps.ui.pots[1] = MockADC(resADC)
+	ps.pots[0] = MockADC(cutADC)
+	ps.pots[1] = MockADC(resADC)
 
 	buf := make([]int16, 1)
-	assert.NilError(t, ps.Fill(buf))
+	assert.NilError(t, ps.fill(buf))
 
-	return ps.filt1.Frequency, ps.filt1.Resonance
+	return ps.Engine.filt1.Frequency, ps.Engine.filt1.Resonance
 }
 
 func TestMinCutoff(t *testing.T) {

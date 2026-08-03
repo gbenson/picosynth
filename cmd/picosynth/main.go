@@ -5,8 +5,7 @@ import "gbenson.net/go/picosynth"
 func main() {
 	defer func() { fatal(recover()) }()
 
-	var ps picosynth.Engine
-	if err := ps.Run(); err != nil {
+	if err := picosynth.Run(); err != nil {
 		fatal(err)
 	}
 

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"gbenson.net/go/picosynth/internal/adc"
+	"gbenson.net/go/picosynth/internal/audio"
 	"gbenson.net/go/picosynth/internal/display"
 	"gbenson.net/go/picosynth/internal/encoder"
 )
@@ -52,8 +53,8 @@ var potRegisters = []int{
 
 // Picosynth is a replacement brain for Casio SA-5 keyboards.
 type Picosynth struct {
-	ui  UI
-	mem *Memory
+	Engine Engine
+	ui     UI
 
 	encoder *encoder.Encoder
 	pots    []adc.ADC
@@ -62,7 +63,6 @@ type Picosynth struct {
 	keytracker KeyTracker
 
 	octave int
-	volume int
 
 	// currentStep is the step number of the current step.  It's
 	// incremented at the start of every [UI.Step], which at the
@@ -86,9 +86,25 @@ type Picosynth struct {
 	defaultPage Page
 }
 
-func (ps *Picosynth) init(m *Memory) error {
+// Run is the main entry point of the firmware.
+func Run() error {
+	var ps Picosynth
+	if err := ps.Init(); err != nil {
+		return err
+	}
+	return ps.Run()
+}
+
+// Init initializes a [Picosynth].
+func (ps *Picosynth) Init() error {
+	if ps.ui != nil {
+		panic("already initialized")
+	}
 	ps.ui = &psUI{ps}
-	ps.mem = m
+
+	if err := ps.Engine.Init(); err != nil {
+		return err
+	}
 
 	enc, err := encoder.Open(0)
 	if err != nil {
@@ -125,7 +141,7 @@ func (ps *Picosynth) init(m *Memory) error {
 }
 
 func (ps *Picosynth) AddPage(p Page) {
-	p.OnInit(ps.ui, ps.mem)
+	p.OnInit(ps.ui, &ps.Engine.Memory)
 	ps.pages = append(ps.pages, p)
 
 	if ps.defaultPage == nil {
@@ -134,8 +150,32 @@ func (ps *Picosynth) AddPage(p Page) {
 	}
 }
 
-func (ps *Picosynth) Step() {
+func (ps *Picosynth) Run() error {
+	out, err := audio.Open(SampleRate)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	const numWorkers = 4 // display, keyscanner, filler, player
+	wm := newWorkerManager(numWorkers)
+	wm.Start(&ps.keyscanner)
+	wm.Start(&psDisplay{ps})
+
+	db := newDoubleBuffer[int16](BufferFrames, ps.fill, out.WriteMono)
+
+	wm.Start(db.Filler)
+	wm.Start(db.Player)
+
+	return wm.Wait()
+}
+
+// fill generates samples into the supplied buffer.
+func (ps *Picosynth) fill(buf []int16) error {
 	currentStep := ps.currentStep.Add(1)
+
+	engine := &ps.Engine
+	mem := &engine.Memory
 
 	var activity bool
 	for e := ps.keyscanner.Poll(); e != NoEvent; e = ps.keyscanner.Poll() {
@@ -168,9 +208,9 @@ func (ps *Picosynth) Step() {
 			p := Pitch(v)
 			p *= (MaxAudiblePitch - MinAudiblePitch) >> 16
 			p += MinAudiblePitch
-			ps.mem.StorePitch(r, p)
+			mem.StorePitch(r, p)
 		default:
-			ps.mem.StoreSignal(r, Signal(v)<<15) // 0xffff -> 0x7fff8000
+			mem.StoreSignal(r, Signal(v)<<15) // 0xffff -> 0x7fff8000
 		}
 		//activity = true
 	}
@@ -180,7 +220,10 @@ func (ps *Picosynth) Step() {
 	}
 
 	ps.keytracker.Step()
-	ps.mem.StorePitch(VoicePitch, ps.keytracker.Note.Pitch())
+	mem.StorePitch(VoicePitch, ps.keytracker.Note.Pitch())
+
+	engine.ampEnv.Gate = ps.keytracker.Gate // XXX pass this in a register
+	return engine.Fill(buf)
 }
 
 func (ps *Picosynth) onButtonDown(sc Scancode, currentStep uint32) {
@@ -196,9 +239,9 @@ func (ps *Picosynth) onButtonUp(sc Scancode, currentStep uint32) {
 
 	switch sc {
 	case ButtonVolumeUp:
-		ps.SetVolume(ps.volume + 1)
+		ps.SetVolume(ps.Engine.volume + 1)
 	case ButtonVolumeDown:
-		ps.SetVolume(ps.volume - 1)
+		ps.SetVolume(ps.Engine.volume - 1)
 	case ButtonTempoUp:
 		ps.SetOctave(ps.octave + 1)
 	case ButtonTempoDown:
@@ -214,7 +257,7 @@ func (ps *Picosynth) SetOctave(v int) {
 }
 
 func (ps *Picosynth) SetVolume(v int) {
-	ps.volume = max(MinVolume, min(MaxVolume, v))
+	ps.Engine.volume = max(MinVolume, min(MaxVolume, v))
 }
 
 func (ps *Picosynth) onButtonPress(sc Scancode, longpress bool) {
@@ -293,28 +336,34 @@ func (ui *psUI) ScreenBlanked() bool {
 	return ui.ps.ScreenBlanked()
 }
 
+type psDisplay struct {
+	ps *Picosynth
+}
+
 // Name implements [worker].
-func (ui *Picosynth) Name() string {
+func (psd *psDisplay) Name() string {
 	return "display"
 }
 
 // Run implements [worker].
-func (ui *Picosynth) Run() func() error {
-	return ui.run
+func (psd *psDisplay) Run() func() error {
+	return psd.run
 }
 
-func (ui *Picosynth) run() error {
+func (psd *psDisplay) run() error {
+	ps := psd.ps
+
 	d, err := display.Open()
 	if err != nil {
 		return err
 	}
 
 	for _ = range time.Tick(FrameRate) {
-		now := ui.currentStep.Load()
+		now := ps.currentStep.Load()
 
-		if now-ui.lastActivityStep.Load() > activityTimeout {
+		if now-ps.lastActivityStep.Load() > activityTimeout {
 			// user inactive
-			needBlank := ui.screenBlanked.Swap(true)
+			needBlank := ps.screenBlanked.Swap(true)
 
 			if needBlank {
 				d.Sleep()
@@ -322,11 +371,11 @@ func (ui *Picosynth) run() error {
 
 		} else {
 			// user recently active
-			needUnblank := ui.screenBlanked.Swap(false)
-			needRefresh := !ui.screenCurrent.Swap(true)
+			needUnblank := ps.screenBlanked.Swap(false)
+			needRefresh := !ps.screenCurrent.Swap(true)
 
 			if needUnblank || needRefresh {
-				ui.CurrentPage().Render(d, now)
+				ps.CurrentPage().Render(d, now)
 			}
 		}
 	}

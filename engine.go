@@ -3,8 +3,6 @@ package picosynth
 import (
 	"math/bits"
 	"time"
-
-	"gbenson.net/go/picosynth/internal/audio"
 )
 
 const (
@@ -42,8 +40,8 @@ var (
 )
 
 type Engine struct {
-	mem Memory
-	ui  Picosynth
+	Memory Memory
+	volume int
 
 	lfo1 BasicOscillator
 
@@ -55,14 +53,16 @@ type Engine struct {
 	filt1 ChamberlinFilter
 }
 
-func (ps *Engine) init() error {
+// Init initializes an [Engine].
+func (ps *Engine) Init() error {
+	ps.volume = MaxVolume
 	ps.Reset()
-	return ps.ui.init(&ps.mem)
+	return nil
 }
 
 // Reset restores all synthesis parameters to their initial states.
 func (ps *Engine) Reset() {
-	mem := &ps.mem
+	mem := &ps.Memory
 	mx := mem.Matrix()
 
 	mx.Reset()
@@ -88,70 +88,43 @@ func (ps *Engine) Reset() {
 	mem.Store(Filt1Mode, uint32(FilterChamberlinLowPass))
 }
 
-// Run is the main entry point of the firmware.
-func (ps *Engine) Run() error {
-	if err := ps.init(); err != nil {
-		return err
-	}
-
-	out, err := audio.Open(SampleRate)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	const numWorkers = 4 // display, keyscanner, filler, player
-	wm := newWorkerManager(numWorkers)
-	wm.Start(&ps.ui.keyscanner)
-	wm.Start(&ps.ui)
-
-	db := newDoubleBuffer[int16](BufferFrames, ps.Fill, out.WriteMono)
-
-	wm.Start(db.Filler)
-	wm.Start(db.Player)
-
-	return wm.Wait()
-}
-
 // Fill generates samples into the supplied buffer.
 func (ps *Engine) Fill(buf []int16) error {
-	ps.ui.Step()
-	ps.ampEnv.Gate = ps.ui.keytracker.Gate
-
 	// Final shift converts 32-bit to 16 and applies ps.volume.
 	var finalShift int
-	if v := ps.ui.volume; v <= MinVolume {
+	if v := ps.volume; v <= MinVolume {
 		finalShift = 32 // silence
 	} else {
 		finalShift = (16 + (MaxVolume - v)) & 0x1f
 	}
 
+	mem := &ps.Memory
 	for i := range buf {
-		ps.mem.Step()
+		mem.Step()
 
 		ps.lfo1.Step()
-		ps.mem.StoreSignal(LFO1Output, ps.lfo1.Output)
+		mem.StoreSignal(LFO1Output, ps.lfo1.Output)
 
-		osc1Pitch := ps.mem.LoadPitch(ModulatedOsc1Pitch)
+		osc1Pitch := mem.LoadPitch(ModulatedOsc1Pitch)
 		ps.osc1.Frequency = osc1Pitch.Frequency()
 		ps.osc1.Step()
 
-		osc2Pitch := ps.mem.LoadPitch(ModulatedOsc2Pitch)
+		osc2Pitch := mem.LoadPitch(ModulatedOsc2Pitch)
 		ps.osc2.Frequency = osc2Pitch.Frequency()
 		ps.osc2.Step()
 
-		premix := ps.osc1.Output.Mul(ps.mem.LoadSignal(ModulatedOsc1Level))
-		premix += ps.osc2.Output.Mul(ps.mem.LoadSignal(ModulatedOsc2Level))
+		premix := ps.osc1.Output.Mul(mem.LoadSignal(ModulatedOsc1Level))
+		premix += ps.osc2.Output.Mul(mem.LoadSignal(ModulatedOsc2Level))
 
-		filt1Cutoff := ps.mem.LoadPitch(ModulatedFilt1Cutoff)
+		filt1Cutoff := mem.LoadPitch(ModulatedFilt1Cutoff)
 
 		ps.filt1.Input = premix
 		ps.filt1.Frequency = filt1Cutoff.Frequency()
-		ps.filt1.Resonance = ps.mem.LoadSignal(ModulatedFilt1Resonance)
+		ps.filt1.Resonance = mem.LoadSignal(ModulatedFilt1Resonance)
 		ps.filt1.Step()
 
 		var output Signal
-		switch FilterMode(ps.mem.Load(Filt1Mode)) {
+		switch FilterMode(mem.Load(Filt1Mode)) {
 		default:
 			output = premix // bypass
 		case FilterChamberlinLowPass:

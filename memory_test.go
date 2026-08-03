@@ -46,9 +46,9 @@ func TestEditable(t *testing.T) {
 }
 
 func TestMatrixOutputCalculation(t *testing.T) {
-	var ps Engine
-	assert.NilError(t, ps.init())
-	m := &ps.mem
+	var engine Engine
+	engine.Reset()
+	m := &engine.Memory
 
 	out := m.Register(ModulatedLFO2Rate) // value used by LFO2 for this step
 	in1 := m.Register(LFO2Rate)          // bias value (from LFO2 rate knob)
