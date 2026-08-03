@@ -61,7 +61,7 @@ func (pg *ParameterGroupPage) OnButtonPress(ui *Picosynth, sc Scancode, longpres
 		return false
 	}
 
-	if !ui.HasFocus(pg) {
+	if !ui.PageHasFocus(pg) {
 		// only the exact press grants focus to an unfocused page.
 		if longpress != pg.LongPress {
 			return false

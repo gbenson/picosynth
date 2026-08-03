@@ -248,7 +248,7 @@ func (ui *Picosynth) CurrentPage() Page {
 	return *ui.currentPage.Load()
 }
 
-func (ui *Picosynth) HasFocus(p Page) bool {
+func (ui *Picosynth) PageHasFocus(p Page) bool {
 	return ui.CurrentPage() == p
 }
 

@@ -41,7 +41,7 @@ func (v *Visualizer) OnButtonPress(ui *Picosynth, sc Scancode, longpress bool) b
 		return false
 	} else if sc != Hotkey {
 		return false
-	} else if !ui.HasFocus(v) {
+	} else if !ui.PageHasFocus(v) {
 		return true // take focus
 	} else if ui.ScreenBlanked() {
 		return true // eat the keypress

@@ -41,7 +41,7 @@ func (me *MemoryEditor) OnButtonPress(ui *Picosynth, sc Scancode, longpress bool
 
 	if longpress {
 		return false
-	} else if !ui.HasFocus(me) {
+	} else if !ui.PageHasFocus(me) {
 		// maybe take focus
 		return sc == Hotkey
 	} else if ui.ScreenBlanked() {
