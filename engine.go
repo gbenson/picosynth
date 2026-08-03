@@ -43,7 +43,7 @@ var (
 
 type Engine struct {
 	mem Memory
-	ui  UI
+	ui  Picosynth
 
 	lfo1 BasicOscillator
 

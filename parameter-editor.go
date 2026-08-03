@@ -23,7 +23,7 @@ type ParameterGroup struct {
 type ParameterGroupPage struct {
 	ParameterGroup
 
-	ui       *UI
+	ui       *Picosynth
 	params   []Parameter
 	selected atomic.Uint32
 }
@@ -39,7 +39,7 @@ func (pg *ParameterGroupPage) SelectedParameter() Parameter {
 }
 
 // OnInit implements [Page].
-func (pg *ParameterGroupPage) OnInit(ui *UI) {
+func (pg *ParameterGroupPage) OnInit(ui *Picosynth) {
 	if len(pg.Parameters) < 1 {
 		panic("no parameters")
 	}
@@ -51,12 +51,12 @@ func (pg *ParameterGroupPage) OnInit(ui *UI) {
 }
 
 // OnFocus implements [Page].
-func (pg *ParameterGroupPage) OnFocus(ui *UI) {
+func (pg *ParameterGroupPage) OnFocus(ui *Picosynth) {
 	pg.SelectedParameter().Focus(ui.mem)
 }
 
 // OnButtonPress implements [Page].
-func (pg *ParameterGroupPage) OnButtonPress(ui *UI, sc Scancode, longpress bool) bool {
+func (pg *ParameterGroupPage) OnButtonPress(ui *Picosynth, sc Scancode, longpress bool) bool {
 	if sc != pg.Hotkey {
 		return false
 	}
@@ -111,7 +111,7 @@ func (pg *ParameterGroupPage) OnButtonPress(ui *UI, sc Scancode, longpress bool)
 }
 
 // OnEncoderMove implements [Page].
-func (pg *ParameterGroupPage) OnEncoderMove(ui *UI, delta int) {
+func (pg *ParameterGroupPage) OnEncoderMove(ui *Picosynth, delta int) {
 	pg.SelectedParameter().Adjust(ui.mem, int32(delta))
 	ui.InvalidateDisplay()
 }

@@ -22,7 +22,7 @@ type MemoryEditor struct {
 }
 
 // OnInit implements [Page].
-func (me *MemoryEditor) OnInit(ui *UI) {
+func (me *MemoryEditor) OnInit(ui *Picosynth) {
 	// Advance to the first named editable register.
 	me.navigate(ui, 0)
 
@@ -31,12 +31,12 @@ func (me *MemoryEditor) OnInit(ui *UI) {
 }
 
 // OnFocus implements [Page].
-func (me *MemoryEditor) OnFocus(ui *UI) {
+func (me *MemoryEditor) OnFocus(ui *Picosynth) {
 	me.value.Store(ui.mem.load(me.register))
 }
 
 // OnButtonPress implements [Page].
-func (me *MemoryEditor) OnButtonPress(ui *UI, sc Scancode, longpress bool) bool {
+func (me *MemoryEditor) OnButtonPress(ui *Picosynth, sc Scancode, longpress bool) bool {
 	const Hotkey = ButtonToneEdit
 
 	if longpress {
@@ -72,11 +72,11 @@ func (me *MemoryEditor) OnButtonPress(ui *UI, sc Scancode, longpress bool) bool 
 }
 
 // OnEncoderMove implements [Page].
-func (me *MemoryEditor) OnEncoderMove(ui *UI, delta int) {
+func (me *MemoryEditor) OnEncoderMove(ui *Picosynth, delta int) {
 	me.onChange(ui, delta, false)
 }
 
-func (me *MemoryEditor) onCycle(ui *UI) {
+func (me *MemoryEditor) onCycle(ui *Picosynth) {
 	if me.selected < 0 {
 		// switch from moving through registers to editing the first byte
 		me.selected = 0
@@ -90,23 +90,23 @@ func (me *MemoryEditor) onCycle(ui *UI) {
 	me.invalidateDisplay(ui)
 }
 
-func (me *MemoryEditor) onDecrease(ui *UI) {
+func (me *MemoryEditor) onDecrease(ui *Picosynth) {
 	me.onChange(ui, -1, false)
 }
 
-func (me *MemoryEditor) onIncrease(ui *UI) {
+func (me *MemoryEditor) onIncrease(ui *Picosynth) {
 	me.onChange(ui, +1, false)
 }
 
-func (me *MemoryEditor) onDecreaseMulti(ui *UI) {
+func (me *MemoryEditor) onDecreaseMulti(ui *Picosynth) {
 	me.onChange(ui, -1, true)
 }
 
-func (me *MemoryEditor) onIncreaseMulti(ui *UI) {
+func (me *MemoryEditor) onIncreaseMulti(ui *Picosynth) {
 	me.onChange(ui, +1, true)
 }
 
-func (me *MemoryEditor) onChange(ui *UI, step int, multi bool) {
+func (me *MemoryEditor) onChange(ui *Picosynth, step int, multi bool) {
 	if me.selected < 0 {
 		// moving through registers
 		if multi {
@@ -127,7 +127,7 @@ func (me *MemoryEditor) onChange(ui *UI, step int, multi bool) {
 
 // nagivate moves up and down the list of named editable registers by
 // the given number amount.
-func (me *MemoryEditor) navigate(ui *UI, steps int) {
+func (me *MemoryEditor) navigate(ui *Picosynth, steps int) {
 	step := 1
 	if steps < 0 {
 		step = -1
@@ -161,7 +161,7 @@ func (me *MemoryEditor) adjust(mem *Memory, delta, mask uint32) {
 	mem.Store(me.register, (v & ^mask)|((v+delta)&mask))
 }
 
-func (me *MemoryEditor) invalidateDisplay(ui *UI) {
+func (me *MemoryEditor) invalidateDisplay(ui *Picosynth) {
 	me.OnFocus(ui) // update me.value
 	ui.InvalidateDisplay()
 }

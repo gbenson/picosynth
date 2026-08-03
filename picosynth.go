@@ -50,7 +50,8 @@ var potRegisters = []int{
 	Filt1Resonance,
 }
 
-type UI struct {
+// Picosynth is a replacement brain for Casio SA-5 keyboards.
+type Picosynth struct {
 	mem *Memory
 
 	encoder *encoder.Encoder
@@ -84,7 +85,7 @@ type UI struct {
 	defaultPage Page
 }
 
-func (ui *UI) init(m *Memory) error {
+func (ui *Picosynth) init(m *Memory) error {
 	ui.mem = m
 
 	enc, err := encoder.Open(0)
@@ -105,8 +106,8 @@ func (ui *UI) init(m *Memory) error {
 
 	ui.keytracker.init()
 
-	ui.setOctave(InitialOctave)
-	ui.setVolume(InitialVolume)
+	ui.SetOctave(InitialOctave)
+	ui.SetVolume(InitialVolume)
 
 	ui.AddPage(&ui.visualizer)
 	ui.AddPage(&MemoryEditor{})
@@ -121,7 +122,7 @@ func (ui *UI) init(m *Memory) error {
 	return nil
 }
 
-func (ui *UI) AddPage(p Page) {
+func (ui *Picosynth) AddPage(p Page) {
 	p.OnInit(ui)
 	ui.pages = append(ui.pages, p)
 
@@ -131,7 +132,7 @@ func (ui *UI) AddPage(p Page) {
 	}
 }
 
-func (ui *UI) Step() {
+func (ui *Picosynth) Step() {
 	currentStep := ui.currentStep.Add(1)
 
 	var activity bool
@@ -180,11 +181,11 @@ func (ui *UI) Step() {
 	ui.mem.StorePitch(VoicePitch, ui.keytracker.Note.Pitch())
 }
 
-func (ui *UI) onButtonDown(sc Scancode, currentStep uint32) {
+func (ui *Picosynth) onButtonDown(sc Scancode, currentStep uint32) {
 	ui.buttonDownStep[sc] = currentStep
 }
 
-func (ui *UI) onButtonUp(sc Scancode, currentStep uint32) {
+func (ui *Picosynth) onButtonUp(sc Scancode, currentStep uint32) {
 	holdTime := currentStep - ui.buttonDownStep[sc]
 	if holdTime > longPressTimeout {
 		ui.onButtonPress(sc, true)
@@ -193,28 +194,28 @@ func (ui *UI) onButtonUp(sc Scancode, currentStep uint32) {
 
 	switch sc {
 	case ButtonVolumeUp:
-		ui.setVolume(ui.volume + 1)
+		ui.SetVolume(ui.volume + 1)
 	case ButtonVolumeDown:
-		ui.setVolume(ui.volume - 1)
+		ui.SetVolume(ui.volume - 1)
 	case ButtonTempoUp:
-		ui.setOctave(ui.octave + 1)
+		ui.SetOctave(ui.octave + 1)
 	case ButtonTempoDown:
-		ui.setOctave(ui.octave - 1)
+		ui.SetOctave(ui.octave - 1)
 	default:
 		ui.onButtonPress(sc, false)
 	}
 }
 
-func (ui *UI) setOctave(v int) {
+func (ui *Picosynth) SetOctave(v int) {
 	ui.octave = max(MinOctave, min(MaxOctave, v))
 	ui.keytracker.Transpose = ui.octave * 12
 }
 
-func (ui *UI) setVolume(v int) {
+func (ui *Picosynth) SetVolume(v int) {
 	ui.volume = max(MinVolume, min(MaxVolume, v))
 }
 
-func (ui *UI) onButtonPress(sc Scancode, longpress bool) {
+func (ui *Picosynth) onButtonPress(sc Scancode, longpress bool) {
 	currentPage := ui.CurrentPage()
 
 	if currentPage.OnButtonPress(ui, sc, longpress) {
@@ -238,24 +239,24 @@ func (ui *UI) onButtonPress(sc Scancode, longpress bool) {
 	}
 }
 
-func (ui *UI) onEncoderMove(delta int) {
+func (ui *Picosynth) onEncoderMove(delta int) {
 	ui.CurrentPage().OnEncoderMove(ui, delta)
 }
 
 // CurrentPage returns the currently displayed page.
-func (ui *UI) CurrentPage() Page {
+func (ui *Picosynth) CurrentPage() Page {
 	return *ui.currentPage.Load()
 }
 
-func (ui *UI) HasFocus(p Page) bool {
+func (ui *Picosynth) HasFocus(p Page) bool {
 	return ui.CurrentPage() == p
 }
 
-func (ui *UI) YieldFocus() {
+func (ui *Picosynth) YieldFocus() {
 	ui.focus(ui.defaultPage)
 }
 
-func (ui *UI) focus(p Page) {
+func (ui *Picosynth) focus(p Page) {
 	if p == nil {
 		panic("nil page")
 	}
@@ -265,26 +266,26 @@ func (ui *UI) focus(p Page) {
 }
 
 // ScreenBlanked reports whether the screen is blanked.
-func (ui *UI) ScreenBlanked() bool {
+func (ui *Picosynth) ScreenBlanked() bool {
 	return ui.screenBlanked.Load()
 }
 
 // InvalidateDisplay requests a redraw at the next refresh.
-func (ui *UI) InvalidateDisplay() {
+func (ui *Picosynth) InvalidateDisplay() {
 	ui.screenCurrent.Store(false)
 }
 
 // Name implements [worker].
-func (ui *UI) Name() string {
+func (ui *Picosynth) Name() string {
 	return "display"
 }
 
 // Run implements [worker].
-func (ui *UI) Run() func() error {
+func (ui *Picosynth) Run() func() error {
 	return ui.run
 }
 
-func (ui *UI) run() error {
+func (ui *Picosynth) run() error {
 	d, err := display.Open()
 	if err != nil {
 		return err

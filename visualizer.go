@@ -11,7 +11,7 @@ type Visualizer struct {
 }
 
 // OnInit implements [Page].
-func (v *Visualizer) OnInit(ui *UI) {
+func (v *Visualizer) OnInit(ui *Picosynth) {
 	v.text = "hello"
 	go func() {
 		time.Sleep(time.Second * 4)
@@ -30,11 +30,11 @@ func (v *Visualizer) OnInit(ui *UI) {
 }
 
 // OnFocus implements [Page].
-func (v *Visualizer) OnFocus(ui *UI) {
+func (v *Visualizer) OnFocus(ui *Picosynth) {
 }
 
 // OnButtonPress implements [Page].
-func (v *Visualizer) OnButtonPress(ui *UI, sc Scancode, longpress bool) bool {
+func (v *Visualizer) OnButtonPress(ui *Picosynth, sc Scancode, longpress bool) bool {
 	const Hotkey = ButtonToneEdit
 
 	if longpress {
@@ -51,7 +51,7 @@ func (v *Visualizer) OnButtonPress(ui *UI, sc Scancode, longpress bool) bool {
 }
 
 // OnEncoderMove implements [Page].
-func (v *Visualizer) OnEncoderMove(ui *UI, delta int) {
+func (v *Visualizer) OnEncoderMove(ui *Picosynth, delta int) {
 }
 
 // Render implements [Page].
