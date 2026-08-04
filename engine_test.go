@@ -8,6 +8,7 @@ import (
 
 	"gotest.tools/v3/assert"
 
+	"gbenson.net/go/picosynth/internal/hw/drivers/encoders"
 	"gbenson.net/go/picosynth/internal/hw/machine"
 )
 
@@ -114,6 +115,9 @@ type fillTestEmulator struct {
 	adcInitialized atomic.Bool
 	adcConfigured  [4]atomic.Bool
 	adcValue       [4]atomic.Uint32
+
+	encoderConfigured atomic.Bool
+	encoderPosition   atomic.Int32
 }
 
 func (e *fillTestEmulator) InitADC() {
@@ -162,4 +166,27 @@ func (e *fillTestEmulator) GetADC(a machine.ADC) uint16 {
 	assert.Check(t, e.adcConfigured[n].Load(), "not configured")
 
 	return uint16(e.adcValue[n].Load())
+}
+
+func (e *fillTestEmulator) ConfigureEncoder(
+	enc encoders.QuadratureDevice,
+	config encoders.QuadratureConfig,
+) error {
+	t := e.t
+
+	assert.Equal(t, enc.PinA, machine.GP0)
+	assert.Equal(t, enc.PinB, machine.GP1)
+	assert.Equal(t, config, encoders.QuadratureConfig{Precision: 4})
+
+	assert.Check(t, e.encoderConfigured.Swap(true) == false, "already configured")
+
+	return nil
+}
+
+func (e *fillTestEmulator) EncoderPosition(enc encoders.QuadratureDevice) int {
+	t := e.t
+
+	assert.Check(t, e.encoderConfigured.Load(), "not configured")
+
+	return int(e.encoderPosition.Load())
 }

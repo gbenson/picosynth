@@ -1,6 +1,9 @@
 package sdl
 
-import "gbenson.net/go/picosynth/internal/hw/machine"
+import (
+	"gbenson.net/go/picosynth/internal/hw/machine"
+	encoders "gbenson.net/go/picosynth/x/emulator"
+)
 
 type Emulator struct{}
 
@@ -17,4 +20,9 @@ func (e *Emulator) GetPin(p machine.Pin) bool {
 // GetADC implements [emulator.ADCGetter].
 func (e *Emulator) GetADC(a machine.ADC) uint16 {
 	return pins[a.Pin].GetADC()
+}
+
+// EncoderPosition implements [emulator.EncoderPositioner].
+func (e *Emulator) EncoderPosition(enc encoders.Encoder) int {
+	return encoder.Position()
 }

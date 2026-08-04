@@ -15,7 +15,3 @@ type AudioDevice interface {
 	io.Closer
 	WriteMono(buf []int16) error
 }
-
-type QuadratureDevice interface {
-	Position() int
-}
