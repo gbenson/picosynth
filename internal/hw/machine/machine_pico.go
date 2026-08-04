@@ -5,11 +5,19 @@ package machine
 import "machine"
 
 type (
+	ADC       = machine.ADC
+	ADCConfig = machine.ADCConfig
+
 	Pin       = machine.Pin
 	PinConfig = machine.PinConfig
 )
 
 const (
+	ADC0 = machine.ADC0
+	ADC1 = machine.ADC1
+	ADC2 = machine.ADC2
+	ADC3 = machine.ADC3
+
 	GP0  = machine.GP0
 	GP1  = machine.GP1
 	GP2  = machine.GP2
@@ -42,3 +50,8 @@ const (
 	PinInputPullup   = machine.PinInputPullup
 	PinInputPulldown = machine.PinInputPulldown
 )
+
+func InitADC() {
+	// InitADC resets the ADC peripheral.
+	machine.InitADC()
+}

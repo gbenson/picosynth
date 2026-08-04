@@ -13,3 +13,8 @@ func (e *Emulator) SetPin(p machine.Pin, value bool) {
 func (e *Emulator) GetPin(p machine.Pin) bool {
 	return pins[p].Get()
 }
+
+// GetADC implements [emulator.ADCGetter].
+func (e *Emulator) GetADC(a machine.ADC) uint16 {
+	return pins[a.Pin].GetADC()
+}

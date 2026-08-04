@@ -2,10 +2,13 @@ package picosynth
 
 import (
 	"slices"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"gotest.tools/v3/assert"
+
+	"gbenson.net/go/picosynth/internal/hw/machine"
 )
 
 func TestConstants(t *testing.T) {
@@ -29,6 +32,7 @@ func TestConstants(t *testing.T) {
 
 func volumeTest(t *testing.T, volume int) (lo, hi int16) {
 	t.Helper()
+	WithTestEmulator(t, &fillTestEmulator{t: t})
 
 	ps := &Picosynth{}
 	assert.NilError(t, ps.Init())
@@ -65,23 +69,18 @@ func TestMaxVolume(t *testing.T) {
 	assert.Check(t, hi > int16(16383))
 }
 
-type MockADC uint16
-
-func (a MockADC) Get() uint16 {
-	return uint16(a)
-}
-
 // Create an Engine, apply the given ADC values, then generate a
 // single sample and return the values that ended up set in the
 // filter.
 func filterTest(t *testing.T, cutADC, resADC uint16) (Frequency, Signal) {
 	t.Helper()
+	e := WithTestEmulator(t, &fillTestEmulator{t: t})
 
 	ps := &Picosynth{}
 	assert.NilError(t, ps.Init())
 
-	ps.pots[0] = MockADC(cutADC)
-	ps.pots[1] = MockADC(resADC)
+	e.setADC(ps.pots[0], cutADC)
+	e.setADC(ps.pots[1], resADC)
 
 	buf := make([]int16, 1)
 	assert.NilError(t, ps.fill(buf))
@@ -107,4 +106,60 @@ func TestMinResonance(t *testing.T) {
 func TestMaxResonance(t *testing.T) {
 	_, res := filterTest(t, 0x1234, 0xffff)
 	assert.Check(t, Within001Percent(res.Float64(), 1))
+}
+
+type fillTestEmulator struct {
+	t *testing.T
+
+	adcInitialized atomic.Bool
+	adcConfigured  [4]atomic.Bool
+	adcValue       [4]atomic.Uint32
+}
+
+func (e *fillTestEmulator) InitADC() {
+	t := e.t
+
+	assert.Equal(t, e.adcInitialized.Swap(true), false, "already initialized")
+}
+
+func (e *fillTestEmulator) adcIndex(a machine.ADC) int {
+	t := e.t
+
+	switch a.Pin {
+	case machine.ADC0:
+		return 0
+	case machine.ADC1:
+		return 1
+	case machine.ADC2:
+		return 2
+	case machine.ADC3:
+		return 3
+	}
+
+	t.Logf("invalid ADC pin GPIO%d", int(a.Pin))
+	t.FailNow()
+	panic("should not reach here")
+}
+
+func (e *fillTestEmulator) ConfigureADC(a machine.ADC, c machine.ADCConfig) error {
+	t := e.t
+	n := e.adcIndex(a)
+
+	assert.Equal(t, c, machine.ADCConfig{})
+	assert.Check(t, e.adcConfigured[n].Swap(true) == false, "already configured")
+
+	return nil
+}
+
+func (e *fillTestEmulator) setADC(a machine.ADC, v uint16) {
+	e.adcValue[e.adcIndex(a)].Store(uint32(v))
+}
+
+func (e *fillTestEmulator) GetADC(a machine.ADC) uint16 {
+	t := e.t
+	n := e.adcIndex(a)
+
+	assert.Check(t, e.adcConfigured[n].Load(), "not configured")
+
+	return uint16(e.adcValue[n].Load())
 }

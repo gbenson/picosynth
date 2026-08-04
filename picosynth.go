@@ -8,6 +8,7 @@ import (
 	"gbenson.net/go/picosynth/internal/audio"
 	"gbenson.net/go/picosynth/internal/display"
 	"gbenson.net/go/picosynth/internal/encoder"
+	"gbenson.net/go/picosynth/internal/hw/machine"
 )
 
 const (
@@ -57,7 +58,7 @@ type Picosynth struct {
 	ui     UI
 
 	encoder *encoder.Encoder
-	pots    []adc.ADC
+	pots    []machine.ADC
 
 	keyscanner KeyScanner
 	keytracker KeyTracker
@@ -112,7 +113,7 @@ func (ps *Picosynth) Init() error {
 	}
 	ps.encoder = enc
 
-	pots := make([]adc.ADC, len(potRegisters))
+	pots := make([]machine.ADC, len(potRegisters))
 	for i := range pots {
 		pot, err := adc.Open(i)
 		if err != nil {

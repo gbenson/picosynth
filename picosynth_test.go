@@ -3,8 +3,11 @@ package picosynth
 import (
 	"fmt"
 	"math"
+	"testing"
 
 	"gotest.tools/v3/assert/cmp"
+
+	"gbenson.net/go/picosynth/x/emulator"
 )
 
 const (
@@ -48,4 +51,11 @@ func nearlyEqual(x, y, relativeTolerance float64) cmp.Comparison {
 			fmt.Sprintf("%v !≈ %v (delta = %v)", x, y, delta),
 		)
 	}
+}
+
+func WithTestEmulator[E any](t *testing.T, e E) E {
+	emulator.Install(e)
+	t.Cleanup(func() { emulator.Install(nil) })
+
+	return e
 }

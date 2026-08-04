@@ -1,8 +1,10 @@
 package sdl
 
 import (
+	"math"
 	"slices"
 	"sync/atomic"
+	"time"
 
 	kbd "gbenson.net/go/picosynth/internal/keyboard"
 	machine "gbenson.net/go/picosynth/x/emulator"
@@ -41,4 +43,14 @@ func (p *Pin) Get() bool {
 		}
 	}
 	return false
+}
+
+func (p *Pin) GetADC() uint16 {
+	n := int((p.pin - 2) & 3)
+
+	mask := int64((1 << (8 + n*2)) - 1)
+	mt := time.Now().UnixMilli() & mask
+	phase := float64(mt) / float64(mask+1) * math.Pi
+	v := int(math.Round(1024 * (1 + math.Sin(phase))))
+	return uint16(max(0, min(2048, v))) << 4
 }
