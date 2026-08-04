@@ -6,6 +6,7 @@ import (
 	"tinygo.org/x/drivers"
 	"tinygo.org/x/drivers/ssd1306"
 
+	"gbenson.net/go/picosynth/internal/hw/machine"
 	"gbenson.net/go/picosynth/internal/microfont"
 )
 
@@ -27,13 +28,16 @@ type Display struct {
 
 // Open opens the display.
 func Open() (*Display, error) {
-	d := &Display{}
-
-	if bus, err := openBus(); err != nil {
+	i2c := machine.I2C1
+	err := i2c.Configure(machine.I2CConfig{
+		SDA: machine.I2C1_SDA_PIN,
+		SCL: machine.I2C1_SCL_PIN,
+	})
+	if err != nil {
 		return nil, err
-	} else {
-		d.bus = bus
 	}
+
+	d := &Display{bus: i2c}
 
 	d.device = ssd1306.NewI2C(d.bus)
 	d.device.Configure(ssd1306.Config{

@@ -7,15 +7,11 @@ import (
 	"tinygo.org/x/drivers/ssd1306"
 )
 
-type DisplayBus struct {
+type I2C struct {
 	cmds []byte
 }
 
-func OpenDisplayBus() (*DisplayBus, error) {
-	return &DisplayBus{}, nil
-}
-
-func (d *DisplayBus) Tx(addr uint16, w, r []byte) error {
+func (i2c *I2C) Tx(addr uint16, w, r []byte) error {
 	if len(r) != 0 {
 		return fmt.Errorf("%w: r=%v", errors.ErrUnsupported, r)
 	}
@@ -23,9 +19,9 @@ func (d *DisplayBus) Tx(addr uint16, w, r []byte) error {
 	var err error
 	switch w[0] {
 	case 0x00:
-		err = d.onCommand(w[1:])
+		err = i2c.onCommand(w[1:])
 	case 0x40:
-		err = d.onData(w[1:])
+		err = i2c.onData(w[1:])
 	default:
 		err = errors.ErrUnsupported
 	}
@@ -37,7 +33,7 @@ func (d *DisplayBus) Tx(addr uint16, w, r []byte) error {
 	return err
 }
 
-func (d *DisplayBus) onCommand(buf []byte) error {
+func (i2c *I2C) onCommand(buf []byte) error {
 	if len(buf) != 1 {
 		return errors.ErrUnsupported
 	}
@@ -48,17 +44,17 @@ func (d *DisplayBus) onCommand(buf []byte) error {
 	case ssd1306.DISPLAYON:
 		display.Wake()
 	}
-	d.cmds = append(d.cmds, cmd)
+	i2c.cmds = append(i2c.cmds, cmd)
 	return nil
 }
 
-func (d *DisplayBus) onData(buf []byte) error {
+func (i2c *I2C) onData(buf []byte) error {
 	// last commands should be the six byte reset sequence
 	// from tinygo.org/x/drivers/ssd1306/Device.Display.
-	if len(d.cmds) < 6 {
+	if len(i2c.cmds) < 6 {
 		return errors.ErrUnsupported
 	}
-	setup := d.cmds[len(d.cmds)-6:]
+	setup := i2c.cmds[len(i2c.cmds)-6:]
 	switch {
 	case setup[0] != ssd1306.COLUMNADDR:
 	case setup[1] != 0:

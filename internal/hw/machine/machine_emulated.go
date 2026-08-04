@@ -9,6 +9,9 @@ type (
 	ADC       = machine.ADC
 	ADCConfig = machine.ADCConfig
 
+	I2C       = machine.I2C
+	I2CConfig = machine.I2CConfig
+
 	Pin       = machine.Pin
 	PinConfig = machine.PinConfig
 )
@@ -18,6 +21,11 @@ const (
 	ADC1 = machine.ADC1
 	ADC2 = machine.ADC2
 	ADC3 = machine.ADC3
+
+	I2C0_SDA_PIN = machine.I2C0_SDA_PIN
+	I2C0_SCL_PIN = machine.I2C0_SCL_PIN
+	I2C1_SDA_PIN = machine.I2C1_SDA_PIN
+	I2C1_SCL_PIN = machine.I2C1_SCL_PIN
 
 	GP0  = machine.GP0
 	GP1  = machine.GP1
@@ -50,6 +58,11 @@ const (
 	PinOutput        = machine.PinOutput
 	PinInputPullup   = machine.PinInputPullup
 	PinInputPulldown = machine.PinInputPulldown
+)
+
+var (
+	I2C0 = machine.I2C0
+	I2C1 = machine.I2C1
 )
 
 func InitADC() {
