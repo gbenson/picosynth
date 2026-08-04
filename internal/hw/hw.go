@@ -8,10 +8,3 @@
 // from [gbenson.net/go/picosynth/x/emulator], a configurable simulation
 // layer for emulation and testcases.
 package hw
-
-import "io"
-
-type AudioDevice interface {
-	io.Closer
-	WriteMono(buf []int16) error
-}

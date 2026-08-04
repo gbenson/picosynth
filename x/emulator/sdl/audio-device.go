@@ -21,11 +21,6 @@ type AudioDevice struct {
 	deviceOpened bool
 }
 
-func OpenAudio(sampleRate int) (*AudioDevice, error) {
-	return &AudioDevice{sampleRate: sampleRate}, nil
-}
-
-// WriteMono implements [Device].
 func (d *AudioDevice) WriteMono(buf []int16) error {
 	if !d.started {
 		if err := d.start(len(buf)); err != nil {
