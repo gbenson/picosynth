@@ -29,7 +29,11 @@ func (ks *KeyScanner) run() error {
 	defer close(events)
 	ks.events = events
 
-	ksm := keyboard.Matrix
+	if err := keyboard.Configure(); err != nil {
+		return err
+	}
+
+	ksm := keyboard.Matrix()
 	rows := ksm.Outputs
 	cols := ksm.Inputs
 
