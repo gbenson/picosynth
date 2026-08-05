@@ -1,4 +1,4 @@
-package emulator
+package sdl
 
 // typedef unsigned char Uint8;
 // void fillBuffer(void *userdata, Uint8 *stream, int len);

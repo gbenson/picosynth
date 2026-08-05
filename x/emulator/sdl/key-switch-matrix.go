@@ -1,4 +1,4 @@
-package emulator
+package sdl
 
 import "gbenson.net/go/picosynth/internal/hw"
 

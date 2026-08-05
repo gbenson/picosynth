@@ -2,7 +2,7 @@
 
 package keyboard
 
-import "gbenson.net/go/picosynth/internal/hw/emulator"
+import emulator "gbenson.net/go/picosynth/x/emulator/sdl"
 
 func init() {
 	m := emulator.NewKeySwitchMatrix()

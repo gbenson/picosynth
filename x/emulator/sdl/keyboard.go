@@ -1,4 +1,4 @@
-package emulator
+package sdl
 
 import (
 	"sync"

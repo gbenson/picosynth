@@ -1,4 +1,5 @@
-package emulator
+// Package sdl provides an SDL2-based emulator for Picosynth.
+package sdl
 
 import (
 	"os"
