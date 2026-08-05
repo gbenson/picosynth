@@ -3,6 +3,8 @@ package picosynth
 import (
 	"io"
 	"sync/atomic"
+
+	"gbenson.net/go/picosynth/internal/hw"
 )
 
 type worker interface {
@@ -48,11 +50,13 @@ func (wm *workerManager) invoke(w worker, f func() error, defaultError error) {
 		}
 	}()
 
-	defer func() {
-		if r := recover(); r != nil {
-			err = RecoveredPanicError{r}
-		}
-	}()
+	if hw.IsBareMetal {
+		defer func() {
+			if r := recover(); r != nil {
+				err = RecoveredPanicError{r}
+			}
+		}()
+	}
 
 	err = f()
 }
