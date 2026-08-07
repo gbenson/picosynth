@@ -1,6 +1,7 @@
 package picosynth
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"testing"
@@ -58,4 +59,10 @@ func WithTestEmulator[E any](t *testing.T, e E) E {
 	t.Cleanup(func() { emulator.Install(nil) })
 
 	return e
+}
+
+var ErrTestComplete = errors.New("end of test")
+
+func StopTest() {
+	panic(ErrTestComplete)
 }
