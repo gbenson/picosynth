@@ -3,6 +3,7 @@ package picosynth
 import (
 	"time"
 
+	"gbenson.net/go/picosynth/internal/hw/machine"
 	"gbenson.net/go/picosynth/internal/keyboard"
 )
 
@@ -38,7 +39,7 @@ func (ks *KeyScanner) run() error {
 	cols := ksm.Inputs
 
 	for _, rp := range rows {
-		rp.Set(false)
+		ks.setPin(rp, false)
 	}
 
 	lastState := make([]bool, len(rows)*len(cols))
@@ -48,7 +49,7 @@ func (ks *KeyScanner) run() error {
 		var sc Scancode
 
 		for _, rp := range rows {
-			rp.Set(true)
+			ks.setPin(rp, true)
 			time.Sleep(settleTime)
 
 			for _, cp := range cols {
@@ -60,9 +61,16 @@ func (ks *KeyScanner) run() error {
 				sc++
 			}
 
-			rp.Set(false)
+			ks.setPin(rp, false)
 		}
 	}
+}
+
+func (ks *KeyScanner) setPin(p machine.Pin, v bool) {
+	if p == machine.NoPin {
+		return
+	}
+	p.Set(v)
 }
 
 // Poll returns the next pending event, or NoEvent if there are none.

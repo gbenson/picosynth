@@ -29,5 +29,9 @@ func init() {
 		return
 	}
 
+	for i := range 4 {
+		switchMatrix.Outputs[i] = machine.NoPin
+	}
+
 	MIDIIn = machine.GP17
 }

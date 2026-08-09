@@ -2,6 +2,7 @@ package picosynth
 
 import (
 	"errors"
+	"slices"
 	"testing"
 
 	"gotest.tools/v3/assert"
@@ -71,6 +72,91 @@ func TestCasioScanner(t *testing.T) {
 
 		assert.Equal(t, em.inputs, uint(0xf0f0))
 		assert.Equal(t, em.outputs, uint(0x7f0000))
+
+		if string(got[:len(want)]) != string(want) {
+			t.Log("want:", want)
+			t.Log("got: ", got)
+			t.Fail()
+		}
+	}()
+
+	WithTestEmulator(t, em)
+	assert.NilError(t, ks.run())
+}
+
+func TestButtonOnlyScanner(t *testing.T) {
+	const (
+		SET uint8 = 254 - iota
+		CLR
+		GET
+	)
+
+	want := make([]uint8, 0, 512)
+	got := make([]uint8, 0, 512)
+
+	ksm := keyboard.Matrix()
+	sa5Outputs := ksm.Outputs
+	t.Cleanup(func() {
+		ksm.Outputs = sa5Outputs
+	})
+	ksm.Outputs = slices.Clone(sa5Outputs)
+	for i := range 4 {
+		ksm.Outputs[i] = machine.NoPin
+	}
+
+	for _, ko := range ksm.Outputs[4:] {
+		want = append(want, CLR, uint8(ko))
+	}
+	for _ = range 3 {
+		for _, ko := range ksm.Outputs {
+			if ko != machine.NoPin {
+				want = append(want, SET, uint8(ko))
+			}
+
+			for _, ki := range ksm.Inputs {
+				want = append(want, GET, uint8(ki))
+			}
+
+			if ko != machine.NoPin {
+				want = append(want, CLR, uint8(ko))
+			}
+		}
+	}
+	assert.Check(t, len(want) > 256 && len(want) < 512)
+
+	ks := &KeyScanner{}
+	em := &ksTestEmulator{
+		setPin: func(p machine.Pin, v bool) {
+			for e := ks.Poll(); e != NoEvent; e = ks.Poll() {
+				t.Log("unexpected event", e)
+				t.Fail()
+			}
+
+			if len(got) >= len(want) {
+				StopTest()
+			}
+
+			if v {
+				got = append(got, SET, uint8(p))
+			} else {
+				got = append(got, CLR, uint8(p))
+			}
+		},
+		getPin: func(p machine.Pin) bool {
+			got = append(got, GET, uint8(p))
+			return false
+		},
+	}
+
+	defer func() {
+		rv := recover()
+		if err, _ := rv.(error); !errors.Is(err, ErrTestComplete) {
+			t.Log(rv)
+			t.FailNow()
+		}
+
+		assert.Equal(t, em.inputs, uint(0xf0f0))
+		assert.Equal(t, em.outputs, uint(0x700000))
 
 		if string(got[:len(want)]) != string(want) {
 			t.Log("want:", want)

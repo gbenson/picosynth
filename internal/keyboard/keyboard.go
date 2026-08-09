@@ -11,6 +11,10 @@ func Configure() error {
 	ksm := Matrix()
 
 	for _, pin := range ksm.Outputs {
+		if pin == machine.NoPin {
+			continue
+		}
+
 		pin.Configure(
 			machine.PinConfig{
 				Mode: machine.PinOutput,
