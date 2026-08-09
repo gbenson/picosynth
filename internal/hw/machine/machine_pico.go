@@ -13,6 +13,10 @@ type (
 
 	Pin       = machine.Pin
 	PinConfig = machine.PinConfig
+
+	UART       = machine.UART
+	UARTConfig = machine.UARTConfig
+	UARTParity = machine.UARTParity
 )
 
 const (
@@ -59,11 +63,16 @@ const (
 	PinOutput        = machine.PinOutput
 	PinInputPullup   = machine.PinInputPullup
 	PinInputPulldown = machine.PinInputPulldown
+
+	ParityNone = machine.ParityNone
 )
 
 var (
 	I2C0 = machine.I2C0
 	I2C1 = machine.I2C1
+
+	UART0 = machine.UART0
+	UART1 = machine.UART1
 )
 
 func InitADC() {

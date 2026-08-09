@@ -9,6 +9,7 @@ import (
 	"gbenson.net/go/picosynth/internal/display"
 	"gbenson.net/go/picosynth/internal/encoder"
 	"gbenson.net/go/picosynth/internal/hw/machine"
+	"gbenson.net/go/picosynth/internal/keyboard"
 )
 
 const (
@@ -62,6 +63,7 @@ type Picosynth struct {
 
 	keyscanner KeyScanner
 	keytracker KeyTracker
+	midiport   MIDIPort
 
 	octave int
 
@@ -125,6 +127,12 @@ func (ps *Picosynth) Init() error {
 
 	ps.keytracker.init()
 
+	if rx := keyboard.MIDIIn; rx != machine.NoPin {
+		if err := ps.midiport.Open(rx-1, rx); err != nil {
+			return err
+		}
+	}
+
 	ps.SetOctave(InitialOctave)
 	ps.SetVolume(InitialVolume)
 
@@ -158,10 +166,14 @@ func (ps *Picosynth) Run() error {
 	}
 	defer out.Close()
 
-	const numWorkers = 4 // display, keyscanner, filler, player
+	const numWorkers = 5 // display, keyscanner, midiport, filler, player
 	wm := newWorkerManager(numWorkers)
 	wm.Start(&ps.keyscanner)
 	wm.Start(&psDisplay{ps})
+
+	if ps.midiport.IsOpen() {
+		wm.Start(&ps.midiport)
+	}
 
 	db := newDoubleBuffer[int16](BufferFrames, ps.fill, out.WriteMono)
 
