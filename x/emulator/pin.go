@@ -4,6 +4,9 @@ package emulator
 // a GPIO, or indirectly via peripherals such as ADC, I2C, etc.
 type Pin uint8
 
+// NoPin explicitly indicates "not a pin".
+const NoPin = Pin(0xff)
+
 // PinMode describes the direction and pull mode of a Pin.
 type PinMode uint8
 

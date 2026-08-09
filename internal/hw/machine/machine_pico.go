@@ -53,6 +53,8 @@ const (
 	GP27 = machine.GP27
 	GP28 = machine.GP28
 
+	NoPin = machine.NoPin
+
 	PinInput         = machine.PinInput
 	PinOutput        = machine.PinOutput
 	PinInputPullup   = machine.PinInputPullup
