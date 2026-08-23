@@ -3,6 +3,7 @@ package audio
 import (
 	"unsafe"
 
+	"gbenson.net/go/picosynth/internal/counts"
 	"gbenson.net/go/picosynth/internal/hw/machine"
 	"gbenson.net/go/picosynth/internal/hw/pio"
 	"gbenson.net/go/picosynth/internal/hw/pio/piolib"
@@ -44,7 +45,9 @@ func (d *Device) WriteMono(buf []int16) error {
 	ptr := unsafe.Pointer(unsafe.SliceData(buf))
 	data := unsafe.Slice((*uint16)(ptr), len(buf))
 
+	counts.WriteMono.Add(1)
 	_, err := d.i2s.WriteMono(data)
+	counts.WriteMono.Add(1)
 	return err
 }
 

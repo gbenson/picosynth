@@ -6,6 +6,7 @@ import (
 
 	"gbenson.net/go/picosynth/internal/adc"
 	"gbenson.net/go/picosynth/internal/audio"
+	"gbenson.net/go/picosynth/internal/counts"
 	"gbenson.net/go/picosynth/internal/display"
 	"gbenson.net/go/picosynth/internal/encoder"
 	"gbenson.net/go/picosynth/internal/hw/machine"
@@ -186,6 +187,7 @@ func (ps *Picosynth) Run() error {
 // fill generates samples into the supplied buffer.
 func (ps *Picosynth) fill(buf []int16) error {
 	currentStep := ps.currentStep.Add(1)
+	counts.FillBuffer.Add(1)
 
 	engine := &ps.Engine
 	mem := &engine.Memory
@@ -384,25 +386,26 @@ func (psd *psDisplay) run() error {
 	}
 
 	for _ = range time.Tick(FrameRate) {
+		counts.DisplayTick.Add(1)
 		now := ps.currentStep.Load()
 
-		if now-ps.lastActivityStep.Load() > activityTimeout {
-			// user inactive
-			needBlank := ps.screenBlanked.Swap(true)
+		// if now-ps.lastActivityStep.Load() > activityTimeout {
+		// 	// user inactive
+		// 	needBlank := ps.screenBlanked.Swap(true)
 
-			if needBlank {
-				d.Sleep()
-			}
+		// 	if needBlank {
+		// 		d.Sleep()
+		// 	}
 
-		} else {
-			// user recently active
-			needUnblank := ps.screenBlanked.Swap(false)
-			needRefresh := !ps.screenCurrent.Swap(true)
+		// } else {
+		// 	// user recently active
+		// 	needUnblank := ps.screenBlanked.Swap(false)
+		// 	needRefresh := !ps.screenCurrent.Swap(true)
 
-			if needUnblank || needRefresh {
-				ps.CurrentPage().Render(d, now)
-			}
-		}
+		// 	if needUnblank || needRefresh {
+		ps.CurrentPage().Render(d, now)
+		// 	}
+		// }
 	}
 	return nil
 }

@@ -3,6 +3,7 @@ package picosynth
 import (
 	"time"
 
+	"gbenson.net/go/picosynth/internal/counts"
 	"gbenson.net/go/picosynth/internal/hw/machine"
 	"gbenson.net/go/picosynth/internal/keyboard"
 )
@@ -50,7 +51,9 @@ func (ks *KeyScanner) run() error {
 
 		for _, rp := range rows {
 			ks.setPin(rp, true)
+			counts.ScanRow.Add(1)
 			time.Sleep(settleTime)
+			counts.ScanRow.Add(1)
 
 			for _, cp := range cols {
 				state := cp.Get()
