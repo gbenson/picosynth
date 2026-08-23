@@ -192,8 +192,15 @@ func (ps *Picosynth) fill(buf []int16) error {
 
 	var activity bool
 	for m := ps.midiport.Poll(); m != NoMessage; m = ps.midiport.Poll() {
-		lastMIDI.Store(uint32(m))
-		ps.ui.InvalidateDisplay()
+		switch m.Type() {
+		case NoteOn:
+			ps.keytracker.Receive(m.Note(), true)
+		case NoteOff:
+			ps.keytracker.Receive(m.Note(), false)
+		default:
+			lastMIDI.Store(uint32(m))
+			ps.ui.InvalidateDisplay()
+		}
 		activity = true
 	}
 	for e := ps.keyscanner.Poll(); e != NoEvent; e = ps.keyscanner.Poll() {
