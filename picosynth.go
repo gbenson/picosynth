@@ -60,7 +60,7 @@ type Picosynth struct {
 	encoder *encoder.Encoder
 	pots    []machine.ADC
 
-	keyscanner KeyScanner
+	scanner    Scanner
 	keytracker KeyTracker
 
 	octave int
@@ -158,9 +158,9 @@ func (ps *Picosynth) Run() error {
 	}
 	defer out.Close()
 
-	const numWorkers = 4 // display, keyscanner, filler, player
+	const numWorkers = 4 // display, scanner, filler, player
 	wm := newWorkerManager(numWorkers)
-	wm.Start(&ps.keyscanner)
+	wm.Start(&ps.scanner)
 	wm.Start(&psDisplay{ps})
 
 	db := newDoubleBuffer[int16](BufferFrames, ps.fill, out.WriteMono)
@@ -179,7 +179,7 @@ func (ps *Picosynth) fill(buf []int16) error {
 	mem := &engine.Memory
 
 	var activity bool
-	for e := ps.keyscanner.Poll(); e != NoEvent; e = ps.keyscanner.Poll() {
+	for e := ps.scanner.Poll(); e != NoEvent; e = ps.scanner.Poll() {
 		sc := e.Scancode()
 		if note := sc.Note(); note.IsValid() {
 			ps.keytracker.Receive(note, e.Down())

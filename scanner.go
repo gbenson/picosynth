@@ -6,21 +6,22 @@ import (
 	"gbenson.net/go/picosynth/internal/ksm"
 )
 
-type KeyScanner struct {
+// Scanner scans the keyboard matrix.
+type Scanner struct {
 	events <-chan KeyEvent
 }
 
 // Name implements [worker].
-func (ks *KeyScanner) Name() string {
-	return "keyscanner"
+func (ks *Scanner) Name() string {
+	return "scanner"
 }
 
 // Run implements [worker].
-func (ks *KeyScanner) Run() func() error {
+func (ks *Scanner) Run() func() error {
 	return ks.run
 }
 
-func (ks *KeyScanner) run() error {
+func (ks *Scanner) run() error {
 	if ks.events != nil {
 		panic("already started")
 	}
@@ -65,7 +66,7 @@ func (ks *KeyScanner) run() error {
 }
 
 // Poll returns the next pending event, or NoEvent if there are none.
-func (ks *KeyScanner) Poll() KeyEvent {
+func (ks *Scanner) Poll() KeyEvent {
 	select {
 	case event := <-ks.events:
 		return event
