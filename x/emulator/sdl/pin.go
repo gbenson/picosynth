@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	kbd "gbenson.net/go/picosynth/internal/keyboard"
+	"gbenson.net/go/picosynth/internal/ksm"
 	machine "gbenson.net/go/picosynth/x/emulator"
 )
 
@@ -28,7 +28,6 @@ func (p *Pin) Set(value bool) {
 }
 
 func (p *Pin) Get() bool {
-	ksm := kbd.Matrix()
 	col := slices.Index(ksm.Inputs, p.pin)
 	if col < 0 {
 		panic("invalid column")

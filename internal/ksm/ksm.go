@@ -1,16 +1,10 @@
-package keyboard
+package ksm
 
 import "gbenson.net/go/picosynth/internal/hw/machine"
 
-type SwitchMatrix struct {
-	Inputs, Outputs []machine.Pin
-}
-
 // Configure configures the key/switch matrix.
 func Configure() error {
-	ksm := Matrix()
-
-	for _, pin := range ksm.Outputs {
+	for _, pin := range Outputs {
 		pin.Configure(
 			machine.PinConfig{
 				Mode: machine.PinOutput,
@@ -18,7 +12,7 @@ func Configure() error {
 		)
 	}
 
-	for _, pin := range ksm.Inputs {
+	for _, pin := range Inputs {
 		pin.Configure(
 			machine.PinConfig{
 				Mode: machine.PinInputPulldown,

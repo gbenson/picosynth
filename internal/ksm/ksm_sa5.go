@@ -1,4 +1,4 @@
-package keyboard
+package ksm
 
 import "gbenson.net/go/picosynth/internal/hw/machine"
 
@@ -28,11 +28,7 @@ const (
 )
 
 // Casio SA-5 key/switch matrix.
-var switchMatrix = SwitchMatrix{
-	Outputs: []machine.Pin{KO0, KO1, KO2, KO3, KO4, KO5, KO6},
-	Inputs:  []machine.Pin{KI0, KI1, KI2, KI3, KI4, KI5, KI6, KI7},
-}
-
-func Matrix() *SwitchMatrix {
-	return &switchMatrix
-}
+var (
+	Outputs = []machine.Pin{KO0, KO1, KO2, KO3, KO4, KO5, KO6}
+	Inputs  = []machine.Pin{KI0, KI1, KI2, KI3, KI4, KI5, KI6, KI7}
+)

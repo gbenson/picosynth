@@ -3,7 +3,7 @@ package picosynth
 import (
 	"time"
 
-	"gbenson.net/go/picosynth/internal/keyboard"
+	"gbenson.net/go/picosynth/internal/ksm"
 )
 
 type KeyScanner struct {
@@ -29,11 +29,10 @@ func (ks *KeyScanner) run() error {
 	defer close(events)
 	ks.events = events
 
-	if err := keyboard.Configure(); err != nil {
+	if err := ksm.Configure(); err != nil {
 		return err
 	}
 
-	ksm := keyboard.Matrix()
 	rows := ksm.Outputs
 	cols := ksm.Inputs
 
