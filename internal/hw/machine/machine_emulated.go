@@ -22,11 +22,6 @@ const (
 	ADC2 = machine.ADC2
 	ADC3 = machine.ADC3
 
-	I2C0_SDA_PIN = machine.I2C0_SDA_PIN
-	I2C0_SCL_PIN = machine.I2C0_SCL_PIN
-	I2C1_SDA_PIN = machine.I2C1_SDA_PIN
-	I2C1_SCL_PIN = machine.I2C1_SCL_PIN
-
 	GP0  = machine.GP0
 	GP1  = machine.GP1
 	GP2  = machine.GP2
@@ -53,6 +48,11 @@ const (
 	GP26 = machine.GP26
 	GP27 = machine.GP27
 	GP28 = machine.GP28
+
+	I2C0_SDA_PIN = machine.I2C0_SDA_PIN
+	I2C0_SCL_PIN = machine.I2C0_SCL_PIN
+	I2C1_SDA_PIN = machine.I2C1_SDA_PIN
+	I2C1_SCL_PIN = machine.I2C1_SCL_PIN
 
 	PinInput         = machine.PinInput
 	PinOutput        = machine.PinOutput
