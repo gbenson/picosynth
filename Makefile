@@ -1,4 +1,5 @@
-GOFLAGS ?= -target=pico -scheduler=cores
+TARGET ?= pico2
+GOFLAGS ?= -target=$(TARGET) -scheduler=cores
 
 all: build
 
@@ -23,7 +24,7 @@ build: check
 		--workdir=/src \
 		gbenson/tinygo-dev:20260720 \
 		./docker-entrypoint.sh \
-	tinygo build $(GOFLAGS) -o picosynth.uf2 ./cmd/picosynth
+	tinygo build $(GOFLAGS) -o picosynth_$(TARGET).uf2 ./cmd/picosynth
 
 flash: check
 	tinygo flash $(GOFLAGS) -monitor ./cmd/picosynth
