@@ -37,11 +37,11 @@ func (p *Pin) Get() bool {
 	defer keyboard.mu.Unlock()
 
 	for row, held := range keyboard.matrix[col] {
-		if held && pins[ksm.Outputs[row]].value.Load() {
-			return true
+		if held && !pins[ksm.Outputs[row]].value.Load() {
+			return false
 		}
 	}
-	return false
+	return true
 }
 
 func (p *Pin) GetADC() uint16 {

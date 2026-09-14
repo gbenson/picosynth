@@ -15,7 +15,7 @@ func Configure() error {
 	for _, pin := range Inputs {
 		pin.Configure(
 			machine.PinConfig{
-				Mode: machine.PinInputPulldown,
+				Mode: machine.PinInputPullup,
 			},
 		)
 	}
