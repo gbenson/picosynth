@@ -1,6 +1,9 @@
 TARGET ?= pico2
 GOFLAGS ?= -target=$(TARGET) -scheduler=cores
 
+BUILDER_IMAGE ?= gbenson/tinygo-dev:20260720
+BUILDER_CACHE ?= $(HOME)/.cache/picosynth/$(subst :,_,$(BUILDER_IMAGE))
+
 all: build
 
 PHONY: build check generate lint run run-local test
@@ -18,11 +21,13 @@ test: lint generate
 	go test ./...
 
 build: check
+	mkdir -p $(BUILDER_CACHE)
 	docker run --rm -it \
 		-v $(shell go env GOPATH):/go \
+		-v $(BUILDER_CACHE):/home/user \
 		-v $(PWD):/src \
 		--workdir=/src \
-		gbenson/tinygo-dev:20260720 \
+		$(BUILDER_IMAGE) \
 		./docker-entrypoint.sh \
 	tinygo build $(GOFLAGS) -o picosynth_$(TARGET).uf2 ./cmd/picosynth
 
