@@ -38,7 +38,7 @@ func (ks *Scanner) run() error {
 	cols := ksm.Inputs
 
 	for _, rp := range rows {
-		rp.Set(true)
+		rp.Set(false)
 	}
 
 	lastState := make([]bool, len(rows)*len(cols))
@@ -48,11 +48,11 @@ func (ks *Scanner) run() error {
 		var sc Scancode
 
 		for _, rp := range rows {
-			rp.Set(false)
+			rp.Set(true)
 			time.Sleep(settleTime)
 
 			for _, cp := range cols {
-				state := !cp.Get()
+				state := ksm.Read(cp)
 				if state != lastState[sc] {
 					events <- keyEvent(sc, state)
 					lastState[sc] = state
@@ -60,7 +60,7 @@ func (ks *Scanner) run() error {
 				sc++
 			}
 
-			rp.Set(true)
+			rp.Set(false)
 		}
 	}
 }
