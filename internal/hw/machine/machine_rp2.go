@@ -68,3 +68,8 @@ var (
 func InitADC() {
 	machine.InitADC()
 }
+
+// EnterBootloader resets the system into the USB bootloader.
+func EnterBootloader() {
+	machine.EnterBootloader()
+}

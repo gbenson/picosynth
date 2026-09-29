@@ -130,6 +130,7 @@ func (ps *Picosynth) Init() error {
 
 	ps.AddPage(&ps.visualizer)
 	ps.AddPage(&MemoryEditor{})
+	ps.AddPage(&BootloaderUtil{})
 	for _, pg := range ParameterGroups {
 		ps.AddPage(NewParameterGroupPage(pg))
 	}
