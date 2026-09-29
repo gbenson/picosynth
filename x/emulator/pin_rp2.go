@@ -1,6 +1,6 @@
 package emulator
 
-// Raspberry Pi Pico GPIO pins.
+// RP2 GPIO pins.
 const (
 	GP0  = GPIO0
 	GP1  = GPIO1

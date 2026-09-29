@@ -1,4 +1,4 @@
-//go:build pico || pico2
+//go:build rp2040 || rp2350
 
 package machine
 
@@ -64,7 +64,7 @@ var (
 	I2C1 = machine.I2C1
 )
 
+// InitADC resets the ADC peripheral.
 func InitADC() {
-	// InitADC resets the ADC peripheral.
 	machine.InitADC()
 }

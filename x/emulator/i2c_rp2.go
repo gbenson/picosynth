@@ -1,6 +1,6 @@
 package emulator
 
-// Raspberry Pi Pico default I2C pins.
+// RP2 default I2C pins.
 const (
 	I2C0_SDA_PIN = GP4
 	I2C0_SCL_PIN = GP5

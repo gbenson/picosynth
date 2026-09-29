@@ -1,4 +1,4 @@
-//go:build pico || pico2
+//go:build rp2040 || rp2350
 
 package piolib
 

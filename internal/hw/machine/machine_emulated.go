@@ -65,7 +65,7 @@ var (
 	I2C1 = machine.I2C1
 )
 
+// InitADC resets the ADC peripheral.
 func InitADC() {
-	// InitADC resets the ADC peripheral.
 	machine.InitADC()
 }
