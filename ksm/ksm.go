@@ -1,3 +1,4 @@
+// Package ksm defines the key/switch matrix.
 package ksm
 
 import "gbenson.net/go/picosynth/x/machine"

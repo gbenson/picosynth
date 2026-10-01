@@ -3,7 +3,7 @@ package picosynth
 import (
 	"time"
 
-	"gbenson.net/go/picosynth/internal/ksm"
+	"gbenson.net/go/picosynth/ksm"
 )
 
 // Scanner scans the keyboard matrix.

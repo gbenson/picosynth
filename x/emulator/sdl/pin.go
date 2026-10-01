@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gbenson.net/go/picosynth/internal/ksm"
+	"gbenson.net/go/picosynth/ksm"
 	machine "gbenson.net/go/picosynth/x/emulator"
 )
 

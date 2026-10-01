@@ -6,7 +6,7 @@ import (
 
 	"gotest.tools/v3/assert"
 
-	"gbenson.net/go/picosynth/internal/ksm"
+	"gbenson.net/go/picosynth/ksm"
 	"gbenson.net/go/picosynth/x/machine"
 )
 
