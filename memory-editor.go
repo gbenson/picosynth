@@ -5,6 +5,7 @@ import (
 
 	"gbenson.net/go/picosynth/internal/display"
 	"gbenson.net/go/picosynth/internal/ui"
+	"gbenson.net/go/picosynth/ksm"
 )
 
 // The code in this file is kind of a mess, it was originally the only
@@ -43,7 +44,7 @@ func (me *MemoryEditor) OnFocus() {
 
 // OnButtonPress implements [Page].
 func (me *MemoryEditor) OnButtonPress(sc Scancode, longpress bool) bool {
-	const Hotkey = ButtonToneEdit
+	const Hotkey = ksm.ButtonToneEdit
 	ui := me.ui
 
 	if longpress {
@@ -61,15 +62,15 @@ func (me *MemoryEditor) OnButtonPress(sc Scancode, longpress bool) bool {
 	}
 
 	switch sc {
-	case ButtonKeyboard:
+	case ksm.ButtonKeyboard:
 		me.onDecreaseMulti()
-	case ButtonWind:
+	case ksm.ButtonWind:
 		me.onIncreaseMulti()
-	case ButtonString:
+	case ksm.ButtonString:
 		me.onCycle()
-	case ButtonSynth:
+	case ksm.ButtonSynth:
 		me.onDecrease()
-	case ButtonSE:
+	case ksm.ButtonSE:
 		me.onIncrease()
 	default:
 		return false

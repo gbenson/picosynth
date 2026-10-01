@@ -8,6 +8,7 @@ import (
 	"gbenson.net/go/picosynth/internal/audio"
 	"gbenson.net/go/picosynth/internal/display"
 	"gbenson.net/go/picosynth/internal/encoder"
+	"gbenson.net/go/picosynth/ksm"
 	"gbenson.net/go/picosynth/x/machine"
 )
 
@@ -72,7 +73,7 @@ type Picosynth struct {
 
 	// buttonDownStep is the step numbers of the last steps each
 	// button transitioned from up to down.
-	buttonDownStep [numScancodes]uint32
+	buttonDownStep [ksm.NumScancodes]uint32
 
 	// lastActivityStep is the step number of the last step where
 	// user activity was observed.
@@ -181,7 +182,7 @@ func (ps *Picosynth) fill(buf []int16) error {
 	var activity bool
 	for e := ps.scanner.Poll(); e != NoEvent; e = ps.scanner.Poll() {
 		sc := e.Scancode()
-		if note := sc.Note(); note.IsValid() {
+		if note := noteFromScancode(sc); note.IsValid() {
 			ps.keytracker.Receive(note, e.Down())
 			activity = true
 		} else if e.Down() {
@@ -239,13 +240,13 @@ func (ps *Picosynth) onButtonUp(sc Scancode, currentStep uint32) {
 	}
 
 	switch sc {
-	case ButtonVolumeUp:
+	case ksm.ButtonVolumeUp:
 		ps.SetVolume(ps.Engine.volume + 1)
-	case ButtonVolumeDown:
+	case ksm.ButtonVolumeDown:
 		ps.SetVolume(ps.Engine.volume - 1)
-	case ButtonTempoUp:
+	case ksm.ButtonTempoUp:
 		ps.SetOctave(ps.octave + 1)
-	case ButtonTempoDown:
+	case ksm.ButtonTempoDown:
 		ps.SetOctave(ps.octave - 1)
 	default:
 		ps.onButtonPress(sc, false)

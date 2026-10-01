@@ -1,9 +1,11 @@
 package picosynth
 
+import "gbenson.net/go/picosynth/ksm"
+
 var ParameterGroups = []ParameterGroup{
 	// ParameterGroup{
 	// 	Name: "global/voice",
-	// 	Hotkey: ButtonSong, // the red one
+	// 	Hotkey: ksm.ButtonSong, // the red one
 	// 	Parameters: []ParameterSpec{
 	// 		RegisterParameter("pitch bend"),
 	// 		RegisterParameter("glide"),
@@ -11,7 +13,7 @@ var ParameterGroups = []ParameterGroup{
 	// },
 	ParameterGroup{
 		Name:   "osc1",
-		Hotkey: ButtonRhythm, // first yellow
+		Hotkey: ksm.ButtonRhythm, // first yellow
 		Parameters: []ParameterSpec{
 			RegisterParameter(Osc1Pitch), // or, only ±octave for osc1?
 			//RegisterParameter(Osc1Shaper),
@@ -21,7 +23,7 @@ var ParameterGroups = []ParameterGroup{
 	},
 	ParameterGroup{
 		Name:   "osc2",
-		Hotkey: ButtonAccomp, // second yellow
+		Hotkey: ksm.ButtonAccomp, // second yellow
 		Parameters: []ParameterSpec{
 			RegisterParameter(Osc2Pitch), // more detune options for osc2
 			//OctaveParameter(Osc2Pitch),
@@ -33,7 +35,7 @@ var ParameterGroups = []ParameterGroup{
 	},
 	ParameterGroup{
 		Name:   "filt1",
-		Hotkey: ButtonFunny, // third yellow
+		Hotkey: ksm.ButtonFunny, // third yellow
 		Parameters: []ParameterSpec{
 			RegisterParameter(Filt1Mode),
 			//RegisterParameter(Filt1KeyTrack), // a matrix cell?

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"gbenson.net/go/picosynth/internal/display"
+	"gbenson.net/go/picosynth/ksm"
 )
 
 type Visualizer struct {
@@ -38,7 +39,7 @@ func (v *Visualizer) OnFocus() {
 
 // OnButtonPress implements [Page].
 func (v *Visualizer) OnButtonPress(sc Scancode, longpress bool) bool {
-	const Hotkey = ButtonToneEdit
+	const Hotkey = ksm.ButtonToneEdit
 
 	if longpress {
 		return false
