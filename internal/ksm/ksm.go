@@ -1,6 +1,6 @@
 package ksm
 
-import "gbenson.net/go/picosynth/internal/hw/machine"
+import "gbenson.net/go/picosynth/x/machine"
 
 // Configure configures the key/switch matrix.
 func Configure() error {

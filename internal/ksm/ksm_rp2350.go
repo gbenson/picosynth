@@ -7,7 +7,7 @@ import (
 	"runtime/volatile"
 	"unsafe"
 
-	"gbenson.net/go/picosynth/internal/hw/machine"
+	"gbenson.net/go/picosynth/x/machine"
 )
 
 // copy-pasted from tinygo/src/machine/machine_rp2_2350.go

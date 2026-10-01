@@ -3,8 +3,8 @@
 package piolib
 
 import (
-	"gbenson.net/go/picosynth/internal/hw/machine"
 	"gbenson.net/go/picosynth/internal/hw/pio"
+	"gbenson.net/go/picosynth/x/machine"
 	"github.com/tinygo-org/pio/rp2-pio/piolib"
 )
 

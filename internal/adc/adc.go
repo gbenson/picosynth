@@ -3,7 +3,7 @@ package adc
 import (
 	"sync/atomic"
 
-	"gbenson.net/go/picosynth/internal/hw/machine"
+	"gbenson.net/go/picosynth/x/machine"
 )
 
 var pins = []machine.Pin{

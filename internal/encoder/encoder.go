@@ -2,7 +2,7 @@ package encoder
 
 import (
 	"gbenson.net/go/picosynth/internal/hw/drivers/encoders"
-	"gbenson.net/go/picosynth/internal/hw/machine"
+	"gbenson.net/go/picosynth/x/machine"
 )
 
 type Encoder struct {

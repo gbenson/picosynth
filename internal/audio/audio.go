@@ -3,9 +3,9 @@ package audio
 import (
 	"unsafe"
 
-	"gbenson.net/go/picosynth/internal/hw/machine"
 	"gbenson.net/go/picosynth/internal/hw/pio"
 	"gbenson.net/go/picosynth/internal/hw/pio/piolib"
+	"gbenson.net/go/picosynth/x/machine"
 )
 
 const (

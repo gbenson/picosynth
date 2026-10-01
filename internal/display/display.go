@@ -6,8 +6,8 @@ import (
 	"tinygo.org/x/drivers"
 	"tinygo.org/x/drivers/ssd1306"
 
-	"gbenson.net/go/picosynth/internal/hw/machine"
 	"gbenson.net/go/picosynth/internal/microfont"
+	"gbenson.net/go/picosynth/x/machine"
 )
 
 const (

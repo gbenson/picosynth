@@ -5,7 +5,7 @@ package encoders
 import (
 	"tinygo.org/x/drivers/encoders"
 
-	"gbenson.net/go/picosynth/internal/hw/machine"
+	"gbenson.net/go/picosynth/x/machine"
 )
 
 type (

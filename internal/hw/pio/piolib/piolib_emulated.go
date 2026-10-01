@@ -4,8 +4,8 @@
 package piolib
 
 import (
-	"gbenson.net/go/picosynth/internal/hw/machine"
 	"gbenson.net/go/picosynth/internal/hw/pio"
+	"gbenson.net/go/picosynth/x/machine"
 	piolib "gbenson.net/go/picosynth/x/emulator"
 )
 

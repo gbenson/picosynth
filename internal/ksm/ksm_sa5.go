@@ -1,6 +1,6 @@
 package ksm
 
-import "gbenson.net/go/picosynth/internal/hw/machine"
+import "gbenson.net/go/picosynth/x/machine"
 
 // GPIO pins connected to the Casio SA-5's keyboard matrix traces.
 // In an unmodified SA-5 they connect to pins of the "LSI1" IC.

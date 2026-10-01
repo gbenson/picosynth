@@ -2,7 +2,7 @@
 
 package ksm
 
-import "gbenson.net/go/picosynth/internal/hw/machine"
+import "gbenson.net/go/picosynth/x/machine"
 
 // configurePin configures a pin.
 func configurePin(p machine.Pin, c machine.PinConfig) {

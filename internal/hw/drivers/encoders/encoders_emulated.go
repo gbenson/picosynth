@@ -3,8 +3,8 @@
 package encoders
 
 import (
-	"gbenson.net/go/picosynth/internal/hw/machine"
 	encoders "gbenson.net/go/picosynth/x/emulator"
+	"gbenson.net/go/picosynth/x/machine"
 )
 
 type (

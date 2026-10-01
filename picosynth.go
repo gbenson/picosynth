@@ -8,7 +8,7 @@ import (
 	"gbenson.net/go/picosynth/internal/audio"
 	"gbenson.net/go/picosynth/internal/display"
 	"gbenson.net/go/picosynth/internal/encoder"
-	"gbenson.net/go/picosynth/internal/hw/machine"
+	"gbenson.net/go/picosynth/x/machine"
 )
 
 const (

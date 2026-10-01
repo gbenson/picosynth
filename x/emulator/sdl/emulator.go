@@ -3,9 +3,9 @@ package sdl
 import (
 	"unsafe"
 
-	"gbenson.net/go/picosynth/internal/hw/machine"
 	"gbenson.net/go/picosynth/internal/hw/pio/piolib"
 	encoders "gbenson.net/go/picosynth/x/emulator"
+	"gbenson.net/go/picosynth/x/machine"
 )
 
 type Emulator struct {

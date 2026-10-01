@@ -6,8 +6,8 @@ import (
 
 	"gotest.tools/v3/assert"
 
-	"gbenson.net/go/picosynth/internal/hw/machine"
 	"gbenson.net/go/picosynth/internal/ksm"
+	"gbenson.net/go/picosynth/x/machine"
 )
 
 func TestCasioScanner(t *testing.T) {
