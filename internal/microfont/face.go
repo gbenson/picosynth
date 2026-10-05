@@ -7,7 +7,7 @@ func init() {
 
 	// Make exclamation mark narrower.
 	if i, ok := microfont.GlyphIndex(f.Ranges, '!'); ok {
-		f.Glyphs[i] >>= 1
+		f.Glyphs[i] >>= 5
 	}
 
 	// Shrink whitespace after ampersand.
