@@ -8,6 +8,7 @@ require (
 	github.com/veandco/go-sdl2 v0.4.40
 	golang.org/x/image v0.38.0
 	gotest.tools/v3 v3.5.2
+	periph.io/x/devices/v3 v3.7.4
 	tinygo.org/x/drivers v0.35.0
 )
 
