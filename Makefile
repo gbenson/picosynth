@@ -12,12 +12,13 @@ check: test
 
 lint:
 	gofmt -w .
-	go vet ./...
+	go mod tidy
 
 generate:
 	go generate ./...
 
 test: lint generate
+	go vet ./...
 	go test ./...
 
 build: check
